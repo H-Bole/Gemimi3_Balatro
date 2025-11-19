@@ -1,0 +1,5 @@
+{
+  "name": "Balatro Clone (CN)",
+  "description": "A high-fidelity web recreation of the roguelike deck-builder game Balatro (小丑牌), featuring poker mechanics, joker modifiers, and CRT aesthetics.",
+  "requestFramePermissions": []
+}
