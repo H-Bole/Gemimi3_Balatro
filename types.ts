@@ -30,13 +30,10 @@ export interface CardData {
   edition: Edition;     // 版本 (Foil/Holo/Poly)
   enhancement: Enhancement; // 增强 (Bonus/Mult/Wild/Glass/Steel...)
   
-  chipsBonus?: number;  // 额外筹码加成 (Legacy field, mostly replaced by enhancement logic)
-  multBonus?: number;   // 额外倍率加成
-  
   isDebuffed?: boolean; // 是否被削弱 (Boss 盲注效果)
   
   // 前端动画状态机
-  animationState?: 'idle' | 'dealing' | 'scoring' | 'discarding'; 
+  animationState?: 'idle' | 'dealing' | 'scoring' | 'discarding' | 'destroyed'; 
   animationDelay?: number; // 动画延迟
 }
 
@@ -59,7 +56,7 @@ export interface Joker {
   
   condition?: (handType: HandType, playedCards: CardData[]) => boolean;
   
-  probability?: number; 
+  probability?: number; // 触发概率 (如 1/4 损坏)
 
   isDebuffed?: boolean;
 }
@@ -79,14 +76,14 @@ export interface Consumable {
     effectId?: string; // 塔罗牌效果ID
 }
 
-// 补充包 (Booster Pack)
+// 补充包 (Booster Pack) 定义
 export interface Pack {
     id: string;
     name: string;
     nameZh: string;
     type: 'Arcana' | 'Celestial' | 'Standard' | 'Buffoon' | 'Spectral';
     cost: number;
-    size: number; // 包里有几张卡
+    size: number;    // 包里有几张卡
     choices: number; // 可以选几张
     description: string;
     descriptionZh: string;
@@ -144,6 +141,14 @@ export interface HandResult {
   level: number;        
 }
 
+// 计分结果详细报告
+export interface ScoreReport {
+    chips: number;
+    mult: number;
+    total: number;
+    destroyedCards: string[]; // ID of cards destroyed (Glass)
+}
+
 // 游戏设置
 export interface GameSettings {
   volume: number;       
@@ -167,6 +172,7 @@ export interface Blind {
 
 export type BossAbility = 'The Wall' | 'The Club' | 'The Goad' | 'The Window' | 'The Head' | 'None';
 
+// 结算清单项
 export interface CashOutItem {
     label: string;
     amount: number;
@@ -181,10 +187,10 @@ export interface CashOutReport {
 // 卡牌选择模式 (用于塔罗牌/补充包)
 export interface SelectionState {
     mode: 'TAROT' | 'PACK';
-    maxSelect: number;
-    sourceItemId?: string; // 塔罗牌ID 或 Pack ID
+    maxSelect: number; // 塔罗牌需要选几张，或包能拿几张
+    sourceItemId?: string; // 来源ID
     generatedCards?: (CardData | Joker | Consumable)[]; // Pack 开出的卡
-    callbackId?: string; // 效果ID
+    callbackId?: string; // 效果ID (如 enhance_gold)
 }
 
 // 全局游戏状态 (State Machine)
@@ -220,6 +226,7 @@ export interface GameState {
   activeTags: Tag[];                    
   redeemedVouchers: string[];           
   
+  // 游戏流程状态
   status: 'MENU' | 'BLIND_SELECT' | 'PLAYING' | 'SCORING' | 'VICTORY' | 'CASHOUT' | 'SHOP' | 'GAME_OVER' | 'PACK_OPEN';
   
   cashOutReport?: CashOutReport; 

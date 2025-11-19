@@ -7,7 +7,7 @@ interface CardProps {
   card: CardData;
   index?: number;
   selected: boolean;
-  highlighted?: boolean; // New prop for selection mode
+  highlighted?: boolean; // 用于塔罗牌选择目标时的高亮
   onClick: () => void;
   onDrop?: (dragIndex: number, dropIndex: number) => void;
   disabled?: boolean;
@@ -28,7 +28,7 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
   const icon = SUIT_ICONS[card.suit];
   const [animStyle, setAnimStyle] = useState<React.CSSProperties>({});
 
-  // Calculate animation style based on state
+  // 动画状态机处理
   useEffect(() => {
     if (card.animationState === 'dealing') {
        setAnimStyle({ 
@@ -58,16 +58,22 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
             zIndex: 100,
             transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
         });
+    } else if (card.animationState === 'destroyed') {
+        setAnimStyle({
+            transform: 'scale(0)',
+            opacity: 0,
+            transition: 'all 0.3s ease-in'
+        });
     } else {
         setAnimStyle({});
     }
   }, [card.animationState, card.animationDelay]);
 
-  // Styling for Editions and Enhancements
+  // 计算特效类名
   const editionClass = card.edition ? `edition-${card.edition.toLowerCase()}` : '';
   const enhanceClass = card.enhancement ? `enhance-${card.enhancement.toLowerCase()}` : '';
 
-  // Drag Handlers
+  // 拖拽事件处理
   const handleDragStart = (e: React.DragEvent) => {
       if (disabled || index === undefined) {
           e.preventDefault();
@@ -105,7 +111,7 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
       onDrop={handleDrop}
       onMouseDown={!disabled ? onClick : undefined}
     >
-      {/* Card Shadow */}
+      {/* 卡牌阴影 */}
       <div className="absolute top-2 left-2 w-full h-full bg-black/50 rounded-lg pointer-events-none"></div>
 
       <div className={`
@@ -118,41 +124,42 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
         ${enhanceClass}
       `}
       style={{
+        // 模拟像素风内描边
         boxShadow: 'inset -4px -4px 0px rgba(0,0,0,0.2), inset 2px 2px 0px rgba(255,255,255,0.8), 0 0 0 2px black'
       }}
       >
-        {/* Debuff Overlay */}
+        {/* 削弱遮罩 (Debuff) */}
         {card.isDebuffed && (
             <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
                 <span className="text-6xl font-bold text-red-600 opacity-60 rotate-45">❌</span>
             </div>
         )}
         
-        {/* Enhancement Stickers */}
-        {card.enhancement === 'Bonus' && <div className="absolute top-1 right-1 text-[10px] font-bold bg-blue-500 text-white px-1 rounded shadow">+30</div>}
-        {card.enhancement === 'Mult' && <div className="absolute top-1 right-1 text-[10px] font-bold bg-red-500 text-white px-1 rounded shadow">+4 M</div>}
-        {card.enhancement === 'Glass' && <div className="absolute inset-0 bg-white/20 pointer-events-none backdrop-blur-[1px] border-2 border-white/40"></div>}
-
-        {/* Top Left */}
+        {/* 增强效果角标 (Stickers) */}
+        {card.enhancement === 'Bonus' && <div className="absolute top-1 right-1 text-[10px] font-bold bg-blue-500 text-white px-1 rounded shadow z-20">+30</div>}
+        {card.enhancement === 'Mult' && <div className="absolute top-1 right-1 text-[10px] font-bold bg-red-500 text-white px-1 rounded shadow z-20">+4 M</div>}
+        {card.edition === 'Foil' && <div className="absolute top-6 right-1 text-[8px] font-bold bg-blue-800 text-white px-1 rounded z-20 opacity-80">FOIL</div>}
+        
+        {/* 左上角点数 */}
         <div className={`text-2xl font-bold leading-none flex flex-col items-center ${colorClass} drop-shadow-sm z-10`}>
           <span style={{fontFamily: 'VT323'}}>{rankDisplay}</span>
           <span className="text-lg">{icon}</span>
         </div>
 
-        {/* Center Big Icon */}
+        {/* 中央大花色 */}
         <div className={`absolute inset-0 flex items-center justify-center ${colorClass}`}>
           <div className={`border-2 border-current rounded-full p-2 opacity-100 ${card.isDebuffed ? 'bg-gray-500' : 'bg-white/50'} backdrop-blur-sm shadow-inner`}>
              <span className="text-5xl filter drop-shadow-md">{icon}</span>
           </div>
         </div>
 
-        {/* Bottom Right (Inverted) */}
+        {/* 右下角点数 (倒置) */}
         <div className={`text-2xl font-bold leading-none flex flex-col items-center transform rotate-180 ${colorClass} drop-shadow-sm z-10`}>
           <span style={{fontFamily: 'VT323'}}>{rankDisplay}</span>
           <span className="text-lg">{icon}</span>
         </div>
         
-        {/* High Contrast Inner Border */}
+        {/* 高对比度虚线内框 (装饰) */}
         <div className="absolute inset-1 border-2 border-dashed border-gray-400/50 pointer-events-none opacity-50"></div>
       </div>
     </div>

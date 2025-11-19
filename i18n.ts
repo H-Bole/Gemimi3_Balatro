@@ -46,6 +46,7 @@ export const TRANSLATIONS = {
     select_target_2: "选择 2 张卡牌",
     select_target_1: "选择 1 张卡牌",
     confirm_use: "确认使用",
+    cancel: "取消",
     
     // Game Stats
     round_score: "回合分数",
@@ -87,6 +88,13 @@ export const TRANSLATIONS = {
     type_Celestial: "天体包",
     type_Standard: "标准包",
     type_Buffoon: "小丑包",
+    type_Spectral: "幻灵包",
+
+    // Editions
+    edition_Foil: "箔金",
+    edition_Holographic: "镭射",
+    edition_Polychrome: "多彩",
+    edition_Negative: "底片",
 
     // Tags
     tag_uncommon: "下一次商店出现罕见小丑",
@@ -143,6 +151,7 @@ export const TRANSLATIONS = {
     select_target_2: "Select 2 cards",
     select_target_1: "Select 1 card",
     confirm_use: "CONFIRM",
+    cancel: "Cancel",
     
     // Game Stats
     round_score: "Round Score",
@@ -184,6 +193,13 @@ export const TRANSLATIONS = {
     type_Celestial: "Celestial Pack",
     type_Standard: "Standard Pack",
     type_Buffoon: "Buffoon Pack",
+    type_Spectral: "Spectral Pack",
+
+    // Editions
+    edition_Foil: "Foil",
+    edition_Holographic: "Holographic",
+    edition_Polychrome: "Polychrome",
+    edition_Negative: "Negative",
 
     // Tags
     tag_uncommon: "Next shop has Uncommon Joker",

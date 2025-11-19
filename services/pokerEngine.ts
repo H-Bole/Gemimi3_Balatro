@@ -1,8 +1,8 @@
 
-import { CardData, HandResult, HandType, Rank, Suit, Joker, Blind, BossAbility, HandLevel, Consumable, Pack, Edition, Enhancement } from "../types";
-import { HAND_SCALING, BOSS_BLINDS, BASE_ANTE_SCORE, AVAILABLE_JOKERS, PLANET_CARDS, TAROT_CARDS, PACKS, EDITION_VALUES, ENHANCEMENT_VALUES } from "../constants";
+import { CardData, HandResult, HandType, Rank, Suit, Joker, Blind, BossAbility, HandLevel, Consumable, Pack, Edition, Enhancement, ScoreReport } from "../types";
+import { HAND_SCALING, BOSS_BLINDS, BASE_ANTE_SCORE, AVAILABLE_JOKERS, PLANET_CARDS, TAROT_CARDS, PACKS, EDITION_VALUES, ENHANCEMENT_VALUES, MAX_JOKERS_DEFAULT } from "../constants";
 
-// --- 牌组生成与洗牌 ---
+// --- 牌组生成与洗牌 (Deck Generation & Shuffling) ---
 export const createDeck = (): CardData[] => {
   const deck: CardData[] = [];
   const suits = [Suit.Hearts, Suit.Diamonds, Suit.Clubs, Suit.Spades];
@@ -23,6 +23,7 @@ export const createDeck = (): CardData[] => {
   return deck;
 };
 
+// 创建单张卡牌，可选生成版本/增强
 export const createCard = (suit: Suit, rank: Rank, id?: string): CardData => {
     return {
         id: id || `card_${Date.now()}_${Math.random()}`,
@@ -34,7 +35,7 @@ export const createCard = (suit: Suit, rank: Rank, id?: string): CardData => {
     };
 };
 
-// --- 盲注生成逻辑 ---
+// --- 盲注生成逻辑 (Blind Generation) ---
 export const generateBlinds = (ante: number): Blind[] => {
     const boss = BOSS_BLINDS[Math.floor(Math.random() * BOSS_BLINDS.length)];
     
@@ -69,12 +70,14 @@ export const generateBlinds = (ante: number): Blind[] => {
     return [small, big, bossBlind];
 };
 
+// 计算当前盲注的目标分数
 export const getBlindScore = (blind: Blind, ante: number): number => {
     const anteBase = Math.floor(BASE_ANTE_SCORE * Math.pow(1.6, ante - 1));
     return Math.floor(anteBase * blind.scoreBase);
 };
 
-// --- 辅助功能 ---
+// --- 辅助功能 (Helpers) ---
+// 排序手牌
 export const sortHand = (hand: CardData[], by: 'RANK' | 'SUIT'): CardData[] => {
     const newHand = [...hand];
     if (by === 'RANK') {
@@ -89,8 +92,7 @@ export const sortHand = (hand: CardData[], by: 'RANK' | 'SUIT'): CardData[] => {
     }
 };
 
-// --- 牌型识别与基础分计算 ---
-
+// --- 牌型识别 (Hand Evaluation) ---
 export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandType, HandLevel>): HandResult => {
   if (selectedCards.length === 0) {
     return {
@@ -105,10 +107,7 @@ export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandT
   const sorted = [...selectedCards].sort((a, b) => b.rank - a.rank);
   const ranks = sorted.map(c => c.rank);
   
-  // Wild Card Logic for Flush
-  // If a card is Wild (or Stone?), it counts as the dominant suit? 
-  // For simplicity: Wild cards adapt to make a flush if possible.
-  // Complex implementation simplified: Count each suit including wilds.
+  // 计算花色分布（包含万能牌逻辑）
   const suitsCount: Record<string, number> = { [Suit.Hearts]: 0, [Suit.Diamonds]: 0, [Suit.Clubs]: 0, [Suit.Spades]: 0 };
   sorted.forEach(c => {
       if (c.enhancement === 'Wild') {
@@ -116,26 +115,19 @@ export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandT
           suitsCount[Suit.Diamonds]++;
           suitsCount[Suit.Clubs]++;
           suitsCount[Suit.Spades]++;
-      } else if (c.enhancement !== 'Stone') { // Stone cards have no suit
+      } else if (c.enhancement !== 'Stone') { // 石头牌不计入花色
           suitsCount[c.suit]++;
       }
   });
 
   const isFlush = Object.values(suitsCount).some(count => count >= 5) && selectedCards.length === 5;
   
-  // Stone cards have no rank for straight purposes usually, but Balatro Stone cards are just +Chips.
-  // Actually Stone cards have no rank/suit. They can be played in High Card, Pair etc? No, they are just fillers usually.
-  // Balatro Logic: Stone cards count for scoring but don't contribute to Rank/Suit for hand types (unless specified).
-  // We will assume Stone cards break Straights/Flushes unless Full House/etc logic handles them as "no rank".
-  // Actually simpler: Filter out Stone cards for Rank analysis?
-  // Let's keep simple: Stone cards keep their rank in data but usually don't form matches. 
-  // Implementation: Stone enhancement doesn't change rank property, but we might treat it as "null" rank.
-  // For this clone: Stone cards act as their original rank for sorting but don't count for Pairs/Straights.
-  
+  // 计算点数分布
   const rankCounts: Record<string, number> = {};
   ranks.forEach(r => rankCounts[r] = (rankCounts[r] || 0) + 1);
   const counts = Object.values(rankCounts).sort((a, b) => b - a);
   
+  // 顺子逻辑
   let isStraight = false;
   if (selectedCards.length === 5) {
     const uniqueRanks = Array.from(new Set(ranks));
@@ -143,6 +135,7 @@ export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandT
       const max = Math.max(...uniqueRanks);
       const min = Math.min(...uniqueRanks);
       if (max - min === 4) isStraight = true;
+      // A, 2, 3, 4, 5 特殊情况
       if (uniqueRanks.includes(14) && uniqueRanks.includes(2) && uniqueRanks.includes(3) && uniqueRanks.includes(4) && uniqueRanks.includes(5)) {
         isStraight = true;
       }
@@ -180,54 +173,62 @@ export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandT
   };
 };
 
-// --- 分数计算 (Enhanced) ---
+// --- 核心计分逻辑 (Score Calculation Pipeline) ---
+// 返回详细的计分报告，包括总分和副作用（如玻璃牌破碎）
 export const calculateScore = (
   handResult: HandResult,
   jokers: Joker[],
+  heldCards: CardData[], // 需要传入所有手牌以计算钢铁牌等效果
   gameState: { money: number; discardsLeft: number; jokerCount: number }
-) => {
+): ScoreReport => {
   let chips = handResult.baseChips;
   let mult = handResult.baseMult;
+  const destroyedCards: string[] = [];
 
-  // 1. 卡牌计分 (Card Triggers)
+  // 1. 卡牌计分 (Card Triggers - Scoring Cards)
   handResult.cards.forEach(card => {
-    if (card.isDebuffed) return; 
+    if (card.isDebuffed) return; // 被削弱的牌不触发任何效果
 
-    // 基础筹码 (Rank Chips)
+    // A. 基础筹码 (Rank Chips)
     let rankValue = 0;
     if (card.enhancement === 'Stone') {
-        rankValue = 0; // Stone has no rank chips
+        rankValue = 0; // 石头牌无基础点数
     } else {
         if (card.rank <= 10) rankValue = card.rank; 
-        else if (card.rank === 14) rankValue = 11;  
-        else rankValue = 10;
+        else if (card.rank === 14) rankValue = 11; // Ace = 11 
+        else rankValue = 10; // J, Q, K = 10
     }
     chips += rankValue;
 
-    // Enhancement Modifiers
+    // B. 增强效果 (Enhancements)
     if (card.enhancement === 'Bonus') chips += ENHANCEMENT_VALUES.Bonus.chips;
     if (card.enhancement === 'Stone') chips += ENHANCEMENT_VALUES.Stone.chips;
     if (card.enhancement === 'Mult') mult += ENHANCEMENT_VALUES.Mult.mult;
-    if (card.enhancement === 'Glass') mult *= ENHANCEMENT_VALUES.Glass.x_mult;
+    if (card.enhancement === 'Glass') {
+        mult *= ENHANCEMENT_VALUES.Glass.x_mult;
+        if (Math.random() < ENHANCEMENT_VALUES.Glass.breakChance) {
+            destroyedCards.push(card.id);
+        }
+    }
     if (card.enhancement === 'Lucky') {
         if (Math.random() < ENHANCEMENT_VALUES.Lucky.multChance) mult += ENHANCEMENT_VALUES.Lucky.mult;
-        // Money logic handled elsewhere or ignores here for scoring view
+        // Lucky 钱的效果通常在结算后增加，这里只处理计分
     }
 
-    // Edition Modifiers (Card)
+    // C. 版本效果 (Editions - Card)
     if (card.edition === 'Foil') chips += EDITION_VALUES.Foil.chips;
     if (card.edition === 'Holographic') mult += EDITION_VALUES.Holographic.mult;
     if (card.edition === 'Polychrome') mult *= EDITION_VALUES.Polychrome.x_mult;
 
-    // Specific Joker Triggers based on Card
+    // D. 小丑对单卡的触发 (Specific Joker Triggers)
     jokers.forEach(joker => {
-        if (joker.isDebuffed) return; // Future proofing if jokers get debuffed
+        if (joker.isDebuffed) return;
         
         if (joker.id === 'j_even_steven' && card.rank % 2 === 0) mult += joker.value;
         if (joker.id === 'j_odd_todd' && card.rank % 2 !== 0) chips += joker.value;
         if (joker.id === 'j_scholar' && card.rank === 14) { mult += 4; chips += 20; }
         
-        // Suit Jokers (Wild logic applied)
+        // 花色检测 (兼容万能牌)
         const isHeart = card.suit === Suit.Hearts || card.enhancement === 'Wild';
         const isDiamond = card.suit === Suit.Diamonds || card.enhancement === 'Wild';
         const isSpade = card.suit === Suit.Spades || card.enhancement === 'Wild';
@@ -240,44 +241,60 @@ export const calculateScore = (
     });
   });
 
-  // 2. Held Card Triggers (Steel, etc)
-  // Note: `handResult.cards` are played cards. We typically need held cards too.
-  // For this simplified engine, we assume Steel effects are pre-calculated or passed? 
-  // Ideally calculateScore needs access to full hand, not just played cards.
-  // For now, we skip held card triggers in this function scope as we only pass HandResult.
-  // *Correction*: Steel cards trigger when held. We'll ignore for now to fit function signature or add later.
+  // 2. 手持卡牌效果 (Held Card Triggers)
+  // 注意：heldCards 包含所有手牌，我们需要排除掉已经打出的牌 (handResult.cards)
+  // 在 App.tsx 中调用时，heldCards 应该是 current hand excluding played selection? 
+  // 不，Balatro 中打出的牌不再视为 "held"。
+  const playedIds = handResult.cards.map(c => c.id);
+  const actualHeldCards = heldCards.filter(c => !playedIds.includes(c.id));
 
-  // 3. 小丑计分 (Joker Triggers)
+  actualHeldCards.forEach(card => {
+      if (card.isDebuffed) return;
+      if (card.enhancement === 'Steel') {
+          mult *= ENHANCEMENT_VALUES.Steel.x_mult;
+      }
+      // 其他手持小丑效果 (如 Baron) 可以在此扩展
+  });
+
+  // 3. 小丑全局效果 (Global Joker Triggers)
   jokers.forEach(joker => {
-    // Joker Edition Modifiers
+    if (joker.isDebuffed) return;
+
+    // Joker 版本加成
     if (joker.edition === 'Foil') chips += EDITION_VALUES.Foil.chips;
     if (joker.edition === 'Holographic') mult += EDITION_VALUES.Holographic.mult;
     if (joker.edition === 'Polychrome') mult *= EDITION_VALUES.Polychrome.x_mult;
 
+    // Flat Chips
     if (joker.type === 'flat_chips') {
        if (joker.id === 'j_banner') chips += (gameState.discardsLeft * 40);
        else if (joker.id === 'j_bull') chips += (gameState.money * 2);
-       else if (joker.id !== 'j_odd_todd') chips += joker.value;
+       else if (joker.id !== 'j_odd_todd') chips += joker.value; // Odd Todd 在单卡循环处理
     }
   });
 
+  // Flat Mult
   jokers.forEach(joker => {
+    if (joker.isDebuffed) return;
     if (joker.type === 'flat_mult') {
       if (joker.condition) {
         if (joker.condition(handResult.handType, handResult.cards)) mult += joker.value;
       } else if (joker.id === 'j_abstract') {
          mult += (gameState.jokerCount * 3);
       } else if (joker.id !== 'j_even_steven' && joker.id !== 'j_gros_michel' && !['j_lusty','j_greedy','j_wrathful','j_gluttenous'].includes(joker.id)) { 
+        // 排除已处理的单卡小丑
         mult += joker.value;
       }
-      if (joker.id === 'j_gros_michel') mult += joker.value;
+      if (joker.id === 'j_gros_michel') mult += joker.value; // Gros Michel 是全局加成
     }
   });
 
+  // X Mult (最后计算)
   jokers.forEach(joker => {
+    if (joker.isDebuffed) return;
     if (joker.type === 'x_mult') {
       if (joker.id === 'j_stencil') {
-         const emptySlots = 5 - gameState.jokerCount; // Assuming max 5
+         const emptySlots = MAX_JOKERS_DEFAULT - gameState.jokerCount; // 简化，未计算负片槽位
          if (emptySlots > 0) for(let i=0; i<emptySlots; i++) mult *= 1.5;
       } else {
         mult *= joker.value;
@@ -288,15 +305,16 @@ export const calculateScore = (
   return {
     chips: Math.floor(chips),
     mult: Math.floor(mult),
-    total: Math.floor(chips * mult)
+    total: Math.floor(chips * mult),
+    destroyedCards
   };
 };
 
-// --- 生成商店物品 (小丑 + 星球/塔罗 + 补充包) ---
+// --- 生成商店物品 (Shop Generation) ---
 export const generateShopItems = (): (Joker | Consumable | Pack)[] => {
     const items: (Joker | Consumable | Pack)[] = [];
     
-    // 2张小丑 (Chance for Edition)
+    // 1. 生成 2 张小丑牌 (有机会带有版本)
     for(let i=0; i<2; i++) {
         const randomJoker = AVAILABLE_JOKERS[Math.floor(Math.random() * AVAILABLE_JOKERS.length)];
         
@@ -305,11 +323,12 @@ export const generateShopItems = (): (Joker | Consumable | Pack)[] => {
         if (rand > 0.98) edition = 'Polychrome';
         else if (rand > 0.95) edition = 'Holographic';
         else if (rand > 0.9) edition = 'Foil';
+        // Negative 暂不自动生成，太稀有
 
         items.push({...randomJoker, id: randomJoker.id + '_' + Date.now() + i, edition});
     }
     
-    // 1张消耗牌
+    // 2. 生成 1 张消耗牌 (星球或塔罗)
     if (Math.random() > 0.5) {
         const randomPlanet = PLANET_CARDS[Math.floor(Math.random() * PLANET_CARDS.length)];
         items.push({...randomPlanet, id: randomPlanet.id + '_' + Date.now()});
@@ -318,7 +337,7 @@ export const generateShopItems = (): (Joker | Consumable | Pack)[] => {
         items.push({...randomTarot, id: randomTarot.id + '_' + Date.now()});
     }
 
-    // 1个补充包
+    // 3. 生成 1 个补充包
     const randomPack = PACKS[Math.floor(Math.random() * PACKS.length)];
     items.push({...randomPack, id: randomPack.id + '_' + Date.now()});
     

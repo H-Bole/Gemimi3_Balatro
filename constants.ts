@@ -8,25 +8,25 @@ export const STARTING_HANDS = 4;
 export const STARTING_DISCARDS = 3;  
 export const STARTING_MONEY = 4;     
 export const BASE_ANTE_SCORE = 300;  
-export const MAX_JOKERS = 5;
+export const MAX_JOKERS_DEFAULT = 5; // 默认小丑槽位，可通过 Negative 版本增加
 export const MAX_CONSUMABLES = 2;
 export const BASE_REROLL_COST = 5;
 
-// --- 版本与增强数值 ---
+// --- 版本与增强数值 (Editions & Enhancements) ---
 export const EDITION_VALUES = {
     Foil: { chips: 50, mult: 0, x_mult: 1 },
     Holographic: { chips: 0, mult: 10, x_mult: 1 },
     Polychrome: { chips: 0, mult: 0, x_mult: 1.5 },
-    Negative: { chips: 0, mult: 0, x_mult: 1 }, // Special logic
+    Negative: { chips: 0, mult: 0, x_mult: 1, extraSlot: 1 }, // Negative 提供额外槽位
 };
 
 export const ENHANCEMENT_VALUES = {
     Bonus: { chips: 30, mult: 0 },
     Mult: { chips: 0, mult: 4 },
-    Glass: { x_mult: 2, breakChance: 0.25 },
-    Steel: { x_mult: 1.5 }, // When held
-    Stone: { chips: 50 },
-    Gold: { money: 3 },
+    Glass: { x_mult: 2, breakChance: 0.25 }, // 1/4 几率破碎
+    Steel: { x_mult: 1.5 }, // 在手牌时生效
+    Stone: { chips: 50 }, // 石头牌+50筹码，无点数花色
+    Gold: { money: 3 }, // 结算时 +$3
     Lucky: { moneyChance: 0.2, money: 20, multChance: 0.2, mult: 20 }
 };
 
@@ -34,7 +34,7 @@ export const ENHANCEMENT_VALUES = {
 export const PACKS: Pack[] = [
     { id: 'p_arcana_normal', name: 'Arcana Pack', nameZh: '奥秘包', type: 'Arcana', cost: 4, size: 3, choices: 1, description: 'Choose 1 of 3 Tarot cards', descriptionZh: '3选1 塔罗牌' },
     { id: 'p_celestial_normal', name: 'Celestial Pack', nameZh: '天体包', type: 'Celestial', cost: 4, size: 3, choices: 1, description: 'Choose 1 of 3 Planet cards', descriptionZh: '3选1 星球牌' },
-    { id: 'p_standard_normal', name: 'Standard Pack', nameZh: '标准包', type: 'Standard', cost: 4, size: 3, choices: 1, description: 'Choose 1 of 3 Playing cards', descriptionZh: '3选1 扑克牌' },
+    { id: 'p_standard_normal', name: 'Standard Pack', nameZh: '标准包', type: 'Standard', cost: 4, size: 3, choices: 1, description: 'Choose 1 of 3 Playing cards', descriptionZh: '3选1 扑克牌 (可能含特效)' },
     { id: 'p_buffoon_normal', name: 'Buffoon Pack', nameZh: '小丑包', type: 'Buffoon', cost: 6, size: 2, choices: 1, description: 'Choose 1 of 2 Joker cards', descriptionZh: '2选1 小丑牌' },
 ];
 
@@ -131,7 +131,6 @@ export const PLANET_CARDS: Consumable[] = [
 
 // --- 塔罗牌池 (Tarot Cards) ---
 export const TAROT_CARDS: Consumable[] = [
-    { id: 't_fool', name: 'The Fool', nameZh: '愚者', description: 'Create last Tarot/Planet used (Not Implemented)', descriptionZh: '生成上一张使用的塔罗/星球牌 (未实现)', type: 'Tarot', cost: 3 },
     { id: 't_magician', name: 'The Magician', nameZh: '魔术师', description: 'Enhance 2 cards to Lucky', descriptionZh: '将2张牌增强为幸运牌 (1/5 $20, 1/15 +20倍)', type: 'Tarot', cost: 3, effectId: 'enhance_lucky' },
     { id: 't_empress', name: 'The Empress', nameZh: '皇后', description: 'Enhance 2 cards to Mult (+4 Mult)', descriptionZh: '将2张牌增强为倍率牌 (+4 倍率)', type: 'Tarot', cost: 3, effectId: 'enhance_mult' },
     { id: 't_hierophant', name: 'The Hierophant', nameZh: '教皇', description: 'Enhance 2 cards to Bonus (+30 Chips)', descriptionZh: '将2张牌增强为奖励牌 (+30 筹码)', type: 'Tarot', cost: 3, effectId: 'enhance_bonus' },
@@ -139,6 +138,8 @@ export const TAROT_CARDS: Consumable[] = [
     { id: 't_chariot', name: 'The Chariot', nameZh: '战车', description: 'Enhance 1 card to Steel', descriptionZh: '将1张牌增强为钢铁牌 (在手牌时 X1.5倍)', type: 'Tarot', cost: 3, effectId: 'enhance_steel' },
     { id: 't_justice', name: 'Justice', nameZh: '正义', description: 'Enhance 1 card to Glass', descriptionZh: '将1张牌增强为玻璃牌 (X2倍, 1/4碎裂)', type: 'Tarot', cost: 3, effectId: 'enhance_glass' },
     { id: 't_hermit', name: 'The Hermit', nameZh: '隐者', description: 'Double your money (Max $20)', descriptionZh: '金钱翻倍 (最多 $20)', type: 'Tarot', cost: 3, effectId: 'economy_double' },
+    { id: 't_tower', name: 'The Tower', nameZh: '塔', description: 'Enhance 1 card to Stone', descriptionZh: '将1张牌增强为石头牌 (+50筹码)', type: 'Tarot', cost: 3, effectId: 'enhance_stone' },
+    { id: 't_devil', name: 'The Devil', nameZh: '恶魔', description: 'Enhance 1 card to Gold', descriptionZh: '将1张牌增强为黄金牌 (结算+$3)', type: 'Tarot', cost: 3, effectId: 'enhance_gold' },
 ];
 
 // --- 小丑牌池 ---

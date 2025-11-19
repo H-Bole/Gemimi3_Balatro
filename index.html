@@ -25,7 +25,7 @@
         image-rendering: pixelated;
       }
 
-      /* Psychedelic Background */
+      /* 迷幻背景 (Psychedelic Background) */
       .swirl-bg {
         position: absolute;
         top: -50%;
@@ -48,7 +48,7 @@
         to { transform: rotate(360deg); }
       }
 
-      /* CRT Effects */
+      /* CRT 屏幕特效 */
       .crt-scanlines {
         background: linear-gradient(
           rgba(18, 16, 16, 0) 50%,
@@ -86,16 +86,7 @@
         100% { opacity: 0.02; }
       }
 
-      /* Card & UI Styles */
-      .pixel-corners {
-        box-shadow: 
-          -4px 0 0 0 #000,
-          4px 0 0 0 #000,
-          0 -4px 0 0 #000,
-          0 4px 0 0 #000;
-        margin: 4px;
-      }
-
+      /* 卡牌通用样式 */
       .card-wrapper {
         transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       }
@@ -108,7 +99,7 @@
         z-index: 30;
       }
 
-      /* Retro Scrollbar */
+      /* 复古滚动条 */
       ::-webkit-scrollbar { width: 10px; }
       ::-webkit-scrollbar-track { background: #2c3e50; }
       ::-webkit-scrollbar-thumb { 
@@ -121,11 +112,6 @@
         text-shadow: 3px 3px 0px #000;
       }
       
-      .text-outline {
-        -webkit-text-stroke: 1px black; 
-        paint-order: stroke fill;
-      }
-
       @keyframes float-score {
         0% { transform: translateY(20px) scale(0.8); opacity: 0; }
         20% { transform: translateY(0px) scale(1.1); opacity: 1; }
@@ -135,53 +121,132 @@
         animation: float-score 2s forwards;
       }
 
-      /* Editions Animations */
+      /* --- 版本特效 (Editions) --- */
+      
+      /* 箔金 (Foil) - 深蓝色光泽 */
       @keyframes foil-shine {
         0% { background-position: 0% 50%; }
         100% { background-position: 200% 50%; }
       }
       .edition-foil {
-        background: linear-gradient(135deg, transparent 20%, rgba(255,255,255,0.4) 25%, transparent 30%) !important;
+        background: linear-gradient(135deg, transparent 25%, rgba(255,255,255,0.3) 50%, transparent 75%) !important;
         background-size: 200% 200% !important;
         animation: foil-shine 3s linear infinite;
+        box-shadow: 0 0 10px rgba(0, 0, 100, 0.5);
+      }
+      /* 给 Foil 版增加一层深蓝滤镜 */
+      .edition-foil::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 150, 0.1);
+        pointer-events: none;
+        z-index: 5;
       }
 
-      @keyframes holo-shine {
-        0% { filter: hue-rotate(0deg); }
-        100% { filter: hue-rotate(360deg); }
+      /* 镭射 (Holographic) - 红色/蓝色辉光 */
+      @keyframes holo-pulse {
+        0% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
+        50% { box-shadow: 0 0 15px rgba(0, 0, 255, 0.7); }
+        100% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
       }
-      .edition-holo {
-        box-shadow: 0 0 10px rgba(0, 157, 220, 0.6), inset 0 0 10px rgba(0, 157, 220, 0.3);
-        border-color: #009ddc !important;
+      .edition-holographic {
+        animation: holo-pulse 2s infinite;
+        border: 2px solid rgba(255, 100, 100, 0.8) !important;
+      }
+      .edition-holographic::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(45deg, rgba(255,0,0,0.1), rgba(0,0,255,0.1));
+        pointer-events: none;
       }
 
+      /* 多彩 (Polychrome) - 彩虹流光 */
+      @keyframes poly-shift {
+        0% { filter: hue-rotate(0deg) brightness(1.2); }
+        100% { filter: hue-rotate(360deg) brightness(1.2); }
+      }
       .edition-polychrome {
-        animation: holo-shine 3s linear infinite;
-        box-shadow: 0 0 15px rgba(255,0,0,0.5), inset 0 0 10px rgba(255,255,255,0.5);
+        /* 注意: 直接 hue-rotate 会改变卡牌花色颜色，这里主要用 box-shadow 和 border */
+        box-shadow: 0 0 15px red, 0 0 5px blue;
+        animation: poly-colors 3s linear infinite;
+      }
+      @keyframes poly-colors {
+        0% { box-shadow: 0 0 10px #ff0000; }
+        20% { box-shadow: 0 0 10px #ffff00; }
+        40% { box-shadow: 0 0 10px #00ff00; }
+        60% { box-shadow: 0 0 10px #00ffff; }
+        80% { box-shadow: 0 0 10px #0000ff; }
+        100% { box-shadow: 0 0 10px #ff00ff; }
       }
 
-      /* Enhancement Textures */
+      /* 底片 (Negative) - 反色 */
+      .edition-negative {
+        filter: invert(1) hue-rotate(180deg);
+      }
+
+      /* --- 增强特效 (Enhancements) --- */
+      
+      /* 石头牌 */
       .enhance-stone {
         background-color: #7f8c8d !important;
-        background-image: url("data:image/svg+xml,%3Csvg width='6' height='6' viewBox='0 0 6 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.2' fill-rule='evenodd'%3E%3Cpath d='M5 0h1L0 6V5zM6 5v1H5z'/%3E%3C/g%3E%3C/svg%3E") !important;
+        background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.1' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E") !important;
+        border: 2px solid #555 !important;
       }
+
+      /* 黄金牌 */
       .enhance-gold {
         background-color: #f1c40f !important;
-        border-color: #f39c12 !important;
+        border-color: #d35400 !important;
       }
+      .enhance-gold::before {
+        content: "$";
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 4rem;
+        color: rgba(255,255,255,0.2);
+        font-weight: bold;
+        pointer-events: none;
+      }
+
+      /* 钢铁牌 */
       .enhance-steel {
-        background-color: #95a5a6 !important;
+        background-color: #bdc3c7 !important;
+        background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px) !important;
         border-color: #7f8c8d !important;
       }
+
+      /* 玻璃牌 */
       .enhance-glass {
         background-color: rgba(255,255,255,0.9) !important;
-        border-color: #aed6f1 !important;
-        opacity: 0.9;
+        opacity: 0.95;
+        position: relative;
       }
+      .enhance-glass::after {
+        content: "";
+        position: absolute;
+        top: 10%; left: 50%;
+        width: 60%; height: 2px;
+        background: rgba(255,255,255,0.8);
+        transform: rotate(-45deg);
+        box-shadow: 0 0 5px white;
+      }
+      
+      /* 万能牌 (Wild) */
       .enhance-wild {
-        background: conic-gradient(from 0deg, #FE5F55, #009ddc, #000, #f0932b, #FE5F55) !important;
+        background: conic-gradient(from 0deg, #FE5F55, #009ddc, #2c3e50, #f0932b, #FE5F55) !important;
         opacity: 0.9;
       }
+      /* 遮罩让它看起来淡一点 */
+      .enhance-wild::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(255,255,255,0.7);
+      }
+
     </style>
     <script type="importmap">
     {
