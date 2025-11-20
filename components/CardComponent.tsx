@@ -34,6 +34,9 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
 
   // 动画状态机处理
   useEffect(() => {
+    // 只有在发牌、弃牌、计分等特殊状态下才应用内联 transform
+    // 在 idle 状态下，我们让 CSS class (.selected / :hover) 来控制位移
+    
     if (card.animationState === 'dealing') {
        setAnimStyle({ 
            transform: 'translateY(100vh) rotate(0deg)', 
@@ -43,7 +46,8 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
        requestAnimationFrame(() => {
            setTimeout(() => {
                setAnimStyle({
-                   transform: 'translateY(0) rotate(0deg)',
+                   // 恢复默认位置，清除内联 transform，让 CSS 接管
+                   transform: undefined, 
                    opacity: 1,
                    transition: 'all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                });
@@ -57,7 +61,7 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
             zIndex: 0
         });
     } else if (card.animationState === 'scoring') {
-        // 计分时不需要太夸张的位移，依靠 isActive 的 Glow
+        // 计分时的特殊位移
         setAnimStyle({
             transform: isActive ? 'translateY(-60px) scale(1.15)' : 'translateY(-50px) scale(1.1)',
             zIndex: isActive ? 200 : 100,
@@ -70,6 +74,7 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
             transition: 'all 0.3s ease-in'
         });
     } else {
+        // idle 状态：清空 transform，让 CSS 类 (.selected) 决定位置
         setAnimStyle({});
     }
   }, [card.animationState, card.animationDelay, isActive]);
@@ -118,10 +123,10 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
   return (
     <div 
       className={`
-        card-wrapper relative w-24 h-36 cursor-pointer
+        card-wrapper relative w-24 h-36 cursor-pointer select-none
         ${selected && card.animationState === 'idle' ? 'selected' : ''}
         ${highlighted ? 'ring-4 ring-yellow-400 transform -translate-y-4' : ''}
-        ${disabled ? 'cursor-not-allowed' : ''}
+        ${disabled ? 'cursor-not-allowed opacity-80' : ''}
       `}
       style={animStyle}
       draggable={!disabled}
@@ -144,10 +149,9 @@ export const CardComponent: React.FC<CardProps> = ({ card, index, selected, high
 
       <div className={`
         relative w-full h-full rounded-lg
-        flex flex-col justify-between p-2 select-none transition-all overflow-hidden
+        flex flex-col justify-between p-2 transition-colors overflow-hidden
         ${card.isDebuffed ? 'bg-gray-400' : 'bg-[#e0e0e0]'}
-        ${selected && card.animationState === 'idle' ? 'bg-white translate-y-[-10px]' : 'hover:bg-gray-100'}
-        ${disabled ? 'opacity-90' : ''}
+        ${selected && card.animationState === 'idle' ? 'bg-white' : 'hover:bg-gray-100'}
         ${editionClass}
         ${enhanceClass}
         ${activeClass}

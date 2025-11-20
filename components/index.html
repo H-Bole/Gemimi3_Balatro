@@ -1,8 +1,9 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>小丑牌 - Balatro Clone</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,10 +20,11 @@
 
       body {
         background-color: #111;
-        overflow: hidden;
+        overflow: hidden; /* 禁止任何全局滚动 */
         font-family: 'ZCOOL QingKe HuangYou', 'VT323', monospace;
         user-select: none;
         image-rendering: pixelated;
+        overscroll-behavior: none; /* 阻止橡皮筋效果 */
       }
 
       /* 迷幻背景 (Psychedelic Background) */
@@ -86,20 +88,26 @@
         100% { opacity: 0.02; }
       }
 
-      /* 卡牌通用样式 */
+      /* --- 卡牌动画核心修复 --- */
       .card-wrapper {
-        transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        will-change: transform;
       }
-      .card-wrapper:hover {
+
+      /* 只有在非选中状态下，Hover 才会生效 */
+      .card-wrapper:not(.selected):hover {
         transform: translateY(-15px) rotate(1deg);
         z-index: 20;
       }
+
+      /* 选中状态强制位移，使用 !important 覆盖 hover */
       .card-wrapper.selected {
-        transform: translateY(-30px);
+        transform: translateY(-30px) !important;
         z-index: 30;
+        filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
       }
       
-      /* 激活/计分状态发光特效 (Active Glow) - 更强烈 */
+      /* 激活/计分状态发光特效 */
       @keyframes pulse-glow {
         0% { box-shadow: 0 0 10px 2px rgba(255, 255, 255, 0.8); transform: scale(1.1); }
         50% { box-shadow: 0 0 25px 8px rgba(255, 255, 255, 1); transform: scale(1.15); }
@@ -111,12 +119,12 @@
         border-color: white !important;
       }
 
-      /* 复古滚动条 */
-      ::-webkit-scrollbar { width: 10px; }
-      ::-webkit-scrollbar-track { background: #2c3e50; }
+      /* 复古滚动条 - 虽然我们尽量避免滚动，但如果必须滚动，样式要好看 */
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
       ::-webkit-scrollbar-thumb { 
         background: #f0932b; 
-        border: 2px solid #000;
+        border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover { background: #e67e22; }
 
@@ -124,7 +132,7 @@
         text-shadow: 3px 3px 0px #000;
       }
       
-      /* 计分板动画 - 入场 (Enter) */
+      /* 计分板动画 - 入场 */
       @keyframes score-enter {
         0% { transform: translateY(50px) scale(0.8); opacity: 0; }
         100% { transform: translateY(0px) scale(1); opacity: 1; }
@@ -133,30 +141,7 @@
         animation: score-enter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
       }
 
-      /* 计分板数值跳动 (Pulse) */
-      @keyframes score-pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.1); }
-        100% { transform: scale(1); }
-      }
-      .score-pulse {
-        animation: score-pulse 0.15s ease-out;
-      }
-
-      /* 火焰文字特效 (Fire Text for High Mult) */
-      @keyframes fire-flicker {
-        0% { text-shadow: 0 0 4px #fefcc9, 2px -2px 6px #feec85, -4px -4px 10px #ffae34, 4px -8px 14px #ec760c, -4px -12px 18px #cd4606; }
-        50% { text-shadow: 0 0 4px #fefcc9, 2px -2px 6px #feec85, -3px -5px 12px #ffae34, 3px -9px 16px #ec760c, -3px -13px 20px #cd4606; }
-        100% { text-shadow: 0 0 4px #fefcc9, 2px -2px 6px #feec85, -4px -4px 10px #ffae34, 4px -8px 14px #ec760c, -4px -12px 18px #cd4606; }
-      }
-      .text-fire {
-        color: #fff;
-        animation: fire-flicker 0.1s infinite alternate;
-      }
-
-      /* --- 版本特效 (Editions) --- */
-      
-      /* 箔金 (Foil) - 深蓝色光泽 */
+      /* 版本特效 (Editions) */
       @keyframes foil-shine {
         0% { background-position: 0% 50%; }
         100% { background-position: 200% 50%; }
@@ -167,16 +152,7 @@
         animation: foil-shine 3s linear infinite;
         box-shadow: 0 0 10px rgba(0, 0, 100, 0.5);
       }
-      .edition-foil::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 150, 0.1);
-        pointer-events: none;
-        z-index: 5;
-      }
-
-      /* 镭射 (Holographic) - 红色/蓝色辉光 */
+      
       @keyframes holo-pulse {
         0% { box-shadow: 0 0 5px rgba(255, 0, 0, 0.5); }
         50% { box-shadow: 0 0 15px rgba(0, 0, 255, 0.7); }
@@ -186,23 +162,7 @@
         animation: holo-pulse 2s infinite;
         border: 2px solid rgba(255, 100, 100, 0.8) !important;
       }
-      .edition-holographic::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(45deg, rgba(255,0,0,0.1), rgba(0,0,255,0.1));
-        pointer-events: none;
-      }
 
-      /* 多彩 (Polychrome) - 彩虹流光 */
-      @keyframes poly-shift {
-        0% { filter: hue-rotate(0deg) brightness(1.2); }
-        100% { filter: hue-rotate(360deg) brightness(1.2); }
-      }
-      .edition-polychrome {
-        box-shadow: 0 0 15px red, 0 0 5px blue;
-        animation: poly-colors 3s linear infinite;
-      }
       @keyframes poly-colors {
         0% { box-shadow: 0 0 10px #ff0000; }
         20% { box-shadow: 0 0 10px #ffff00; }
@@ -211,22 +171,19 @@
         80% { box-shadow: 0 0 10px #0000ff; }
         100% { box-shadow: 0 0 10px #ff00ff; }
       }
+      .edition-polychrome {
+        animation: poly-colors 3s linear infinite;
+      }
 
-      /* 底片 (Negative) - 反色 */
       .edition-negative {
         filter: invert(1) hue-rotate(180deg);
       }
 
-      /* --- 增强特效 (Enhancements) --- */
-      
-      /* 石头牌 */
+      /* 增强 (Enhancements) */
       .enhance-stone {
         background-color: #7f8c8d !important;
-        background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23000000' fill-opacity='0.1' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='3'/%3E%3Ccircle cx='13' cy='13' r='3'/%3E%3C/g%3E%3C/svg%3E") !important;
         border: 2px solid #555 !important;
       }
-
-      /* 黄金牌 */
       .enhance-gold {
         background-color: #f1c40f !important;
         border-color: #d35400 !important;
@@ -241,54 +198,42 @@
         font-weight: bold;
         pointer-events: none;
       }
-
-      /* 钢铁牌 */
       .enhance-steel {
         background-color: #bdc3c7 !important;
-        background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px) !important;
         border-color: #7f8c8d !important;
       }
-
-      /* 玻璃牌 */
       .enhance-glass {
         background-color: rgba(255,255,255,0.9) !important;
         opacity: 0.95;
-        position: relative;
       }
-      .enhance-glass::after {
-        content: "";
-        position: absolute;
-        top: 10%; left: 50%;
-        width: 60%; height: 2px;
-        background: rgba(255,255,255,0.8);
-        transform: rotate(-45deg);
-        box-shadow: 0 0 5px white;
-      }
-      
-      /* 万能牌 (Wild) */
       .enhance-wild {
         background: conic-gradient(from 0deg, #FE5F55, #009ddc, #2c3e50, #f0932b, #FE5F55) !important;
         opacity: 0.9;
       }
-      .enhance-wild::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: rgba(255,255,255,0.7);
-      }
 
+      /* 火焰文字 */
+      @keyframes fire-flicker {
+        0% { text-shadow: 0 0 4px #fefcc9, 2px -2px 6px #feec85, -4px -4px 10px #ffae34, 4px -8px 14px #ec760c; }
+        100% { text-shadow: 0 0 4px #fefcc9, 2px -2px 6px #feec85, -3px -5px 12px #ffae34, 3px -9px 16px #ec760c; }
+      }
+      .text-fire {
+        color: #fff;
+        animation: fire-flicker 0.1s infinite alternate;
+      }
     </style>
     <script type="importmap">
     {
       "imports": {
         "react": "https://aistudiocdn.com/react@^19.2.0",
         "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-        "react/": "https://aistudiocdn.com/react@^19.2.0/"
+        "react/": "https://aistudiocdn.com/react@^19.2.0/",
+        "@/": "./"
       }
     }
     </script>
   </head>
   <body>
     <div id="root"></div>
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>

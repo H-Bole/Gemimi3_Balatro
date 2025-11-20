@@ -7,9 +7,12 @@ export const TRANSLATIONS = {
     settings: "设置",
     game_over: "游戏结束",
     try_again: "再试一次",
+    return_to_menu: "返回主菜单",
+    give_up: "放弃本局",
     close: "关闭",
     ok: "确认",
     language: "语言 (Language)",
+    copyright: "Product by Gemini 3 @H-Bole",
     
     // --- 盲注 (Blinds) ---
     select_blind: "选择盲注",
@@ -289,9 +292,12 @@ export const TRANSLATIONS = {
     settings: "Settings",
     game_over: "GAME OVER",
     try_again: "Try Again",
+    return_to_menu: "Main Menu",
+    give_up: "Give Up Run",
     close: "Close",
     ok: "OK",
     language: "Language (语言)",
+    copyright: "Product by Gemini 3 @H-Bole",
     
     // --- Blinds ---
     select_blind: "SELECT BLIND",

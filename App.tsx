@@ -30,6 +30,7 @@ const INITIAL_HAND_LEVELS: Record<string, any> = Object.keys(HAND_SCALING).reduc
     return acc;
 }, {} as any);
 
+// 初始游戏状态
 const INITIAL_STATE: GameState = {
   deck: [],
   hand: [],
@@ -56,8 +57,17 @@ const INITIAL_STATE: GameState = {
   redeemedVouchers: [],
   settings: DEFAULT_SETTINGS,
   activeCardId: null,
-  playedHandTypes: [] // 新增：用于 Boss 逻辑追踪
+  playedHandTypes: [] 
 };
+
+// 版权页脚组件
+const CopyrightFooter = ({ language }: { language: 'ZH' | 'EN' }) => (
+    <div className="absolute bottom-1 md:bottom-2 w-full text-center pointer-events-none z-[100]">
+        <p className="text-[10px] md:text-xs text-white/30 font-bold font-mono tracking-widest shadow-black drop-shadow-sm">
+            {t(language, 'copyright')}
+        </p>
+    </div>
+);
 
 export default function App() {
   const [game, setGame] = useState<GameState>(INITIAL_STATE);
@@ -196,10 +206,21 @@ export default function App() {
     setDisplayRoundScore(0);
   };
 
+  const returnToMenu = () => {
+    audio.playClick();
+    // 停止 BGM 或重置状态
+    setGame({
+        ...INITIAL_STATE,
+        status: 'MENU',
+        settings: game.settings 
+    });
+    setDisplayRoundScore(0);
+    setShowSettings(false);
+  };
+
   const skipBlind = (blind: Blind) => {
       audio.playClick();
       const randomTag = TAGS[Math.floor(Math.random() * TAGS.length)];
-      // rawId 保持不变用于查找描述，id 加时间戳用于唯一
       const newTag = { ...randomTag, id: randomTag.rawId + '_' + Date.now() };
       setGame(prev => {
           let newMoney = prev.money;
@@ -222,7 +243,6 @@ export default function App() {
       audio.playClick();
       const newDeck = createDeck();
       
-      // 计算手牌上限 (受优惠券和 Boss 盲注 'The Manacle' 影响)
       let handSize = STARTING_HAND_SIZE;
       if (game.redeemedVouchers.includes('v_grabber')) handSize += 1; 
       if (blind.bossAbility === 'The Manacle') handSize -= 1;
@@ -230,18 +250,15 @@ export default function App() {
       let initialHand = newDeck.slice(0, handSize);
       const remainingDeck = newDeck.slice(handSize);
 
-      // 应用 Boss 效果 (卡牌 Debuff 或 The Mark 翻转)
       if (blind.type === 'Boss' && blind.bossAbility) {
           initialHand = applyBossDebuffs(initialHand, blind.bossAbility);
       }
       const target = getBlindScore(blind, game.ante);
       
-      // 计算弃牌次数 (受优惠券和 Boss 盲注 'The Water' 影响)
       let discards = STARTING_DISCARDS;
       if (game.redeemedVouchers.includes('v_wasteful')) discards += 1;
       if (blind.bossAbility === 'The Water') discards = 0;
       
-      // 计算出牌次数 (受优惠券和 Boss 盲注 'The Needle' 影响)
       let handsCount = STARTING_HANDS;
       if (game.redeemedVouchers.includes('v_grabber')) handsCount += 1;
       if (blind.bossAbility === 'The Needle') handsCount = 1;
@@ -259,7 +276,7 @@ export default function App() {
           discardsLeft: discards,
           currentScore: 0, 
           roundScore: 0,
-          playedHandTypes: [] // 重置已打出的牌型记录
+          playedHandTypes: [] 
       }));
       setTimeout(() => audio.playShuffle(), 100);
   };
@@ -271,9 +288,8 @@ export default function App() {
           if (ability === 'The Goad' && c.suit === 'Spades') isDebuffed = true;
           if (ability === 'The Window' && c.suit === 'Diamonds') isDebuffed = true;
           if (ability === 'The Head' && c.suit === 'Hearts') isDebuffed = true;
-          if (ability === 'The Plant' && c.rank >= 11) isDebuffed = true; // 人头牌
+          if (ability === 'The Plant' && c.rank >= 11) isDebuffed = true; 
           
-          // The Mark: 人头牌背面朝上 (视觉效果)
           let isFaceDown = false;
           if (ability === 'The Mark' && c.rank >= 11) isFaceDown = true;
 
@@ -286,7 +302,6 @@ export default function App() {
   useEffect(() => {
     if (game.status !== 'PLAYING') return;
     const selectedCards = game.hand.filter(c => game.selectedCardIds.includes(c.id));
-    // 预览分数
     const result = evaluateHand(selectedCards, game.handLevels);
     setHandPreview(result);
   }, [game.selectedCardIds, game.hand, game.status, game.handLevels]);
@@ -377,11 +392,9 @@ export default function App() {
         let drawnCards: CardData[] = [];
         let remainingDeck = [...prev.deck];
         
-        // 计算手牌补充上限
         let handSize = MAX_HAND_SIZE;
         if (prev.currentBlind?.bossAbility === 'The Manacle') handSize -= 1;
 
-        // The Serpent: 弃牌后抽取3张
         let drawCount = handSize - kept.length;
         if (prev.currentBlind?.bossAbility === 'The Serpent') {
             drawCount = 3;
@@ -502,24 +515,20 @@ export default function App() {
         return;
     }
 
-    // --- Boss Logic Checks (Pre-Play) ---
     const boss = game.currentBlind?.bossAbility;
     
-    // The Psychic: 必须打出 5 张牌
     if (boss === 'The Psychic' && game.selectedCardIds.length < 5) {
         audio.playError();
         setGame(prev => ({...prev, triggerState: { id: 'boss_check', text: t(prev.settings.language, 'not_allowed_psychic'), type: 'other' }}));
         return;
     }
 
-    // The Eye: 不能重复打出相同牌型
     if (boss === 'The Eye' && game.playedHandTypes.includes(handPreview.handType)) {
          audio.playError();
          setGame(prev => ({...prev, triggerState: { id: 'boss_check', text: t(prev.settings.language, 'not_allowed_eye'), type: 'other' }}));
          return;
     }
 
-    // The Mouth: 只能打出一种牌型
     if (boss === 'The Mouth' && game.playedHandTypes.length > 0 && game.playedHandTypes[0] !== handPreview.handType) {
          audio.playError();
          setGame(prev => ({...prev, triggerState: { id: 'boss_check', text: t(prev.settings.language, 'not_allowed_mouth'), type: 'other' }}));
@@ -550,23 +559,16 @@ export default function App() {
 
     setGame(prev => {
         const newTotalScore = prev.currentScore + scoreCalc.total;
-        // Boss Effect: The Tooth ($1 loss per card)
         const moneyLoss = scoreCalc.moneyLoss;
         const gainedMoney = scoreCalc.goldGained;
         let finalMoney = Math.max(0, prev.money + gainedMoney - moneyLoss);
 
-        // Boss Effect: The Ox (Playing most played hand -> money = 0)
-        // 简化逻辑：如果是高牌以外的牌型，假设它是主力牌型 (这里为了简化，只要不是高牌就触发，或者随机触发)
-        // 为了严谨，这里暂不强行归零，除非实现了牌型计数器。Balatro 中是 "most played hand"。
-        // 我们简单模拟：如果是当前等级最高的牌型，则归零。
-        let isMostPlayed = false;
         let maxLevel = 0;
         Object.values(prev.handLevels).forEach(hl => { if(hl.level > maxLevel) maxLevel = hl.level; });
         if (boss === 'The Ox' && prev.handLevels[result.handType].level === maxLevel && maxLevel > 1) {
             finalMoney = 0;
         }
         
-        // Boss Effect: The Arm (Decrease hand level)
         let newHandLevels = { ...prev.handLevels };
         if (boss === 'The Arm') {
             const currentLevel = newHandLevels[result.handType];
@@ -586,14 +588,12 @@ export default function App() {
         const playedCards = prev.hand.filter(c => playedIds.includes(c.id));
         const cardsToDiscard = playedCards.filter(c => !brokenIds.includes(c.id));
         
-        // 抽牌逻辑
         let drawnCards: CardData[] = [];
         let remainingDeck = [...prev.deck];
         
         let handSize = MAX_HAND_SIZE;
         if (prev.currentBlind?.bossAbility === 'The Manacle') handSize -= 1;
 
-        // The Serpent: 强制抽3张
         let drawCount = handSize - kept.length;
         if (boss === 'The Serpent') {
             drawCount = 3;
@@ -610,7 +610,6 @@ export default function App() {
         const animatedDrawn = dealCards(drawnCards);
         const newHand = sortHand([...kept, ...animatedDrawn], prev.settings.sortBy);
         
-        // Joker 销毁逻辑
         let newJokers = [...prev.jokers];
         newJokers = newJokers.map(j => j.rawId === 'j_ice_cream' ? { ...j, value: Math.max(0, j.value - 5) } : j);
         const hasGrosMichel = newJokers.find(j => j.rawId === 'j_gros_michel');
@@ -635,7 +634,7 @@ export default function App() {
              selectedCardIds: [],
              handsLeft: prev.handsLeft - 1,
              status: 'PLAYING' as const,
-             playedHandTypes: [...prev.playedHandTypes, result.handType], // 记录牌型
+             playedHandTypes: [...prev.playedHandTypes, result.handType], 
              handLevels: newHandLevels
         };
 
@@ -668,8 +667,7 @@ export default function App() {
               total += prev.handsLeft;
           }
           
-          // Balatro 利息逻辑: 每$5得$1，上限$5 (即$25本金)，如果有 Seed Money 上限$10 (即$50本金)
-          let interestCap = BASE_INTEREST_CAP; // 5
+          let interestCap = BASE_INTEREST_CAP; 
           if (prev.redeemedVouchers.includes('v_seed')) interestCap = 10;
 
           const interest = Math.min(interestCap, Math.floor(prev.money / INTEREST_RATE));
@@ -1081,12 +1079,15 @@ export default function App() {
 
       {/* 1. 菜单 (Menu) */}
       {game.status === 'MENU' && (
-          <MainMenu 
-              onStart={startGame}
-              onSettings={() => setShowSettings(true)}
-              onRules={() => setShowRunInfo(true)}
-              language={lang}
-          />
+          <div className="flex-1 relative w-full h-full overflow-hidden flex items-center justify-center">
+              <MainMenu 
+                onStart={startGame}
+                onSettings={() => setShowSettings(true)}
+                onRules={() => setShowRunInfo(true)}
+                language={lang}
+            />
+            <CopyrightFooter language={lang} />
+          </div>
       )}
 
       {/* 2. 游戏结束 (Game Over) */}
@@ -1094,7 +1095,16 @@ export default function App() {
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 z-[100]">
             <h1 className="text-8xl text-red-600 font-bold mb-4 animate-pulse tracking-widest">{t(lang, 'game_over')}</h1>
             <p className="text-3xl mb-8 text-gray-400">Reached Ante {game.ante}</p>
-            <button onClick={() => setGame({...INITIAL_STATE, settings: game.settings})} className="px-8 py-3 bg-white text-black text-2xl font-bold rounded hover:bg-gray-200 border-4 border-gray-500">{t(lang, 'try_again')}</button>
+            
+            <div className="flex gap-4">
+                <button onClick={() => setGame({...INITIAL_STATE, settings: game.settings})} className="px-8 py-3 bg-white text-black text-2xl font-bold rounded hover:bg-gray-200 border-4 border-gray-500">
+                    {t(lang, 'try_again')}
+                </button>
+                <button onClick={returnToMenu} className="px-8 py-3 bg-gray-600 text-white text-2xl font-bold rounded hover:bg-gray-500 border-4 border-gray-800">
+                    {t(lang, 'return_to_menu')}
+                </button>
+            </div>
+            <CopyrightFooter language={lang} />
         </div>
       )}
 
@@ -1123,126 +1133,161 @@ export default function App() {
           </div>
       )}
 
-      {/* 4. 盲注选择 (Blind Select) */}
+      {/* 4. 盲注选择 (Blind Select) - 完全自适应重构 */}
       {game.status === 'BLIND_SELECT' && (
-         <div className="absolute inset-0 z-20 p-4 md:p-8 flex flex-col overflow-y-auto">
-             <h2 className="text-4xl md:text-5xl font-black text-center mb-8 text-shadow-retro text-white">{t(lang, 'select_blind')} - Ante {game.ante}</h2>
-             <div className="flex flex-col md:flex-row gap-6 justify-center items-stretch flex-1 max-w-6xl mx-auto w-full">
+         <div className="flex-1 flex flex-col relative w-full h-full overflow-hidden">
+             <div className="p-4 text-center shrink-0">
+                <h2 className="text-3xl md:text-5xl font-black text-white text-shadow-retro">{t(lang, 'select_blind')} - Ante {game.ante}</h2>
+             </div>
+             
+             {/* 盲注卡片容器：使用 flex-1 和 min-h-0 确保不出滚动条，自动缩放内容 */}
+             <div className="flex-1 min-h-0 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 px-4 pb-4 w-full max-w-7xl mx-auto">
                  {game.upcomingBlinds.map((blind, i) => (
-                     <div key={blind.type} className={`flex-1 border-4 border-black p-6 flex flex-col items-center justify-between rounded-lg shadow-xl relative min-h-[300px]
+                     <div key={blind.type} className={`flex-1 w-full md:w-auto h-full max-h-[400px] border-4 border-black p-4 flex flex-col items-center justify-between rounded-lg shadow-xl relative transition-transform duration-300
                         ${blind.type === 'Small' ? 'bg-[#009ddc]' : blind.type === 'Big' ? 'bg-[#f0932b]' : 'bg-[#c23616]'}
                      `}>
-                        <div className="text-center">
-                             <div className="text-3xl font-bold uppercase">{t(lang, blind.nameKey)}</div>
+                        <div className="text-center w-full">
+                             <div className="text-2xl md:text-3xl font-bold uppercase truncate">{t(lang, blind.nameKey)}</div>
                              {blind.type === 'Boss' && (
-                                 <div className="bg-black/40 p-2 rounded mt-2 text-sm text-yellow-300 font-bold">
+                                 <div className="bg-black/40 p-1 rounded mt-1 text-xs md:text-sm text-yellow-300 font-bold leading-tight">
                                      {t(lang, `blind_desc_${blind.bossAbility}`)}
                                  </div>
                              )}
                         </div>
-                        <div className="text-5xl md:text-6xl font-black my-4 text-white drop-shadow-md">{getBlindScore(blind, game.ante)}</div>
-                        <div className="text-xl font-bold bg-black/20 px-4 py-2 rounded">{t(lang, 'reward')}: ${blind.reward}</div>
+                        
+                        <div className="flex-1 flex items-center justify-center">
+                             <div className="text-5xl md:text-7xl font-black text-white drop-shadow-md">{getBlindScore(blind, game.ante)}</div>
+                        </div>
+                        
+                        <div className="text-lg md:text-xl font-bold bg-black/20 px-4 py-1 rounded mb-2">{t(lang, 'reward')}: ${blind.reward}</div>
+                        
                         {blind.type !== 'Boss' && (
-                            <div className="w-full mt-2">
-                                <button onClick={() => skipBlind(blind)} className="w-full py-2 bg-gray-800 text-gray-300 font-bold uppercase border-2 border-gray-600 hover:bg-gray-700 text-sm mb-2 flex flex-col items-center">
-                                    <span>{t(lang, 'skip')}</span>
-                                    {/* 修正 Tag 显示逻辑，确保不依赖时间戳ID */}
-                                    <span className="text-[10px] text-yellow-400">{t(lang, `tag_desc_tag_${['uncommon','rare','investment','coupon','speed'][Math.floor(Math.random()*5)]}`)} (预览)</span>
+                            <div className="w-full mb-2">
+                                <button onClick={() => skipBlind(blind)} className="w-full py-2 bg-gray-800 text-gray-300 font-bold uppercase border-2 border-gray-600 hover:bg-gray-700 text-xs flex flex-col items-center justify-center leading-none">
+                                    <span className="mb-1">{t(lang, 'skip')}</span>
+                                    <span className="text-[10px] text-yellow-400">{t(lang, `tag_desc_tag_${['uncommon','rare','investment','coupon','speed'][Math.floor(Math.random()*5)]}`)}</span>
                                 </button>
                             </div>
                         )}
-                        <button onClick={() => selectBlind(blind)} className="w-full py-4 bg-white text-black text-2xl font-black uppercase tracking-widest border-4 border-black hover:bg-opacity-90 transition-transform hover:scale-105">
+                        <button onClick={() => selectBlind(blind)} className="w-full py-3 md:py-4 bg-white text-black text-xl md:text-2xl font-black uppercase tracking-widest border-4 border-black hover:bg-gray-100">
                             {t(lang, 'select')}
                         </button>
                      </div>
                  ))}
              </div>
-             {/* Tags Display */}
-             {game.activeTags.length > 0 && (
-                 <div className="flex justify-center gap-2 mt-4 flex-wrap">
+
+             {/* 底部信息栏 */}
+             <div className="shrink-0 p-4 bg-black/40 border-t-4 border-black mb-4 md:mb-6">
+                 <div className="flex justify-center gap-2 mb-2">
                      {game.activeTags.map((tag, i) => (
-                         <div key={i} className={`px-3 py-1 rounded border border-white text-xs font-bold text-white ${tag.bgClass || 'bg-gray-600'}`}>
+                         <div key={i} className={`px-2 py-0.5 rounded border border-white text-[10px] font-bold text-white ${tag.bgClass || 'bg-gray-600'}`}>
                              {t(lang, `tag_name_${tag.rawId}`)}
                          </div>
                      ))}
                  </div>
-             )}
-             <div className="mt-8 p-4 bg-black/40 rounded border-4 border-black flex flex-col md:flex-row items-center justify-center gap-4 max-w-4xl mx-auto">
-                 <div className="text-xl font-bold text-gray-400">{t(lang, 'your_jokers')}:</div>
-                 <div className="flex flex-wrap justify-center">
-                    {game.jokers.map((j, i) => (
-                        <div key={i} className="transform scale-75 origin-center"><JokerComponent joker={j} language={lang} /></div>
-                    ))}
+                 <div className="flex items-center justify-center gap-4">
+                     <div className="text-sm font-bold text-gray-400">{t(lang, 'your_jokers')}:</div>
+                     <div className="flex gap-1">
+                        {game.jokers.map((j, i) => (
+                            <div key={i} className="transform scale-50 origin-bottom"><JokerComponent joker={j} language={lang} /></div>
+                        ))}
+                     </div>
                  </div>
              </div>
+             <CopyrightFooter language={lang} />
          </div>
       )}
 
-      {/* 5. 商店 (Shop) */}
+      {/* 5. 商店 (Shop) - 深度重构优化版 */}
       {game.status === 'SHOP' && (
-         <div className="absolute inset-0 z-20 flex flex-col overflow-y-auto">
-             <div className="flex justify-between items-center p-4 md:p-8 bg-black/60 backdrop-blur-md border-b-4 border-black sticky top-0 z-50">
-                 <div className="text-4xl md:text-6xl font-black text-[#f0932b] tracking-widest text-shadow-retro">{t(lang, 'shop')}</div>
-                 <div className="bg-black p-2 md:p-4 rounded border-2 border-yellow-600">
-                     <span className="text-yellow-500 text-2xl md:text-4xl font-bold">${game.money}</span>
+         <div className="flex-1 flex flex-col md:flex-row w-full h-full overflow-hidden bg-[#3d2a2a]"> 
+             {/* 左侧栏 (优惠券 + 重随) - 仅在宽屏显示为左侧，窄屏为顶部 */}
+             <div className="md:w-64 shrink-0 flex md:flex-col gap-4 p-4 bg-black/30 border-b-4 md:border-b-0 md:border-r-4 border-black/50 items-center justify-center md:justify-start shadow-xl z-10">
+                 
+                 {/* 标题与金钱 (在窄屏时显示) */}
+                 <div className="md:hidden flex flex-col items-center mr-auto">
+                     <div className="text-2xl font-black text-[#f0932b] text-shadow-retro">{t(lang, 'shop')}</div>
+                     <div className="text-yellow-400 font-bold text-xl">${game.money}</div>
+                 </div>
+
+                 {/* 优惠券槽 */}
+                 <div className="flex flex-col items-center">
+                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t(lang, 'vouchers')}</div>
+                     {game.shopVoucher ? (
+                         <div className={`w-24 h-32 bg-teal-800 border-4 border-teal-600 rounded-lg flex flex-col items-center justify-between p-2 cursor-pointer hover:brightness-110 transition-all shadow-lg relative ${game.money < game.shopVoucher.cost ? 'opacity-50 grayscale' : ''}`} 
+                              onClick={() => buyItem(game.shopVoucher!)}>
+                             <div className="text-[10px] font-bold text-white text-center leading-tight">{t(lang, `voucher_name_${game.shopVoucher.rawId}`)}</div>
+                             <div className="text-3xl">🎟️</div>
+                             <div className="text-[8px] text-center text-teal-200 leading-tight">{t(lang, `voucher_desc_${game.shopVoucher.rawId}`)}</div>
+                             <div className="absolute -top-2 -right-2 bg-black text-white text-xs font-bold px-2 py-0.5 border border-teal-500 rounded">${game.shopVoucher.cost}</div>
+                         </div>
+                     ) : (
+                         <div className="w-24 h-32 border-4 border-dashed border-white/10 rounded-lg flex items-center justify-center">
+                             <span className="text-white/20 font-bold text-xs">EMPTY</span>
+                         </div>
+                     )}
+                 </div>
+
+                 {/* 重随按钮 */}
+                 <div className="flex flex-col items-center">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">{t(lang, 'reroll')}</div>
+                    <button 
+                        onClick={rerollShop} 
+                        className={`w-24 h-20 bg-red-700 border-4 border-red-900 rounded-lg flex flex-col items-center justify-center shadow-lg transition-all ${game.money < game.rerollCost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-red-600 active:translate-y-1'}`}
+                    >
+                        <span className="text-white font-bold text-sm">REROLL</span>
+                        <span className="text-yellow-300 font-black text-xl">${game.rerollCost}</span>
+                    </button>
                  </div>
              </div>
-             
-             <div className="flex-1 flex flex-col items-center p-4 md:p-8 gap-8">
-                 {/* 商店货架 */}
-                 <div className="flex flex-wrap gap-8 p-8 bg-white/5 rounded-xl border-2 border-white/10 shadow-2xl w-full justify-center min-h-[280px] items-center max-w-6xl">
-                     {game.shopItems.length === 0 && <div className="text-2xl text-gray-500 font-bold">{t(lang, 'sold_out')}</div>}
-                     {game.shopItems.map(item => (
-                        <div key={item.id} className="transform hover:translate-y-[-5px] transition-transform">
-                             {'rarity' in item ? (
-                                 <JokerComponent joker={item as Joker} price={item.cost} onClick={() => buyItem(item)} language={lang}/>
-                             ) : 'size' in item ? (
-                                 <div className="w-32 h-48 bg-gray-800 border-4 border-gray-400 flex flex-col items-center p-2 cursor-pointer hover:bg-gray-700" onClick={() => buyItem(item as Pack)}>
-                                     <div className="text-center font-bold text-white text-xs mt-2 h-8">{t(lang, `pack_name_${(item as Pack).rawId}`)}</div>
-                                     <div className="flex-1 text-4xl flex items-center justify-center">📦</div>
-                                     <div className="text-[10px] text-center text-gray-300 leading-tight mb-2">{t(lang, `pack_desc_${(item as Pack).rawId}`)}</div>
-                                     <div className="bg-yellow-400 text-black font-black px-2 rounded">${item.cost}</div>
-                                 </div>
-                             ) : (
-                                 <ConsumableComponent item={item as Consumable} price={item.cost} canBuy={true} onClick={() => buyItem(item)} language={lang} />
-                             )}
-                        </div>
-                     ))}
+
+             {/* 主体区域 */}
+             <div className="flex-1 flex flex-col min-h-0 relative">
+                 
+                 {/* 顶部标题栏 (仅宽屏显示) */}
+                 <div className="hidden md:flex justify-between items-center px-8 py-4 bg-black/40 border-b-4 border-black/20">
+                     <div className="text-5xl font-black text-[#f0932b] tracking-widest text-shadow-retro">{t(lang, 'shop')}</div>
+                     <div className="bg-black/60 px-6 py-2 rounded-full border-2 border-yellow-600 flex items-center gap-2">
+                         <span className="text-gray-300 font-bold text-sm">BANK:</span>
+                         <span className="text-yellow-400 text-3xl font-black">${game.money}</span>
+                     </div>
                  </div>
 
-                 <div className="flex flex-wrap gap-8 w-full max-w-6xl justify-center items-end">
-                    {/* Vouchers */}
-                    <div className="flex flex-col items-center">
-                         <div className="text-center text-white/50 font-bold mb-2 uppercase tracking-widest text-xs">{t(lang, 'vouchers')}</div>
-                         {game.shopVoucher ? (
-                             <div className="w-32 h-48 bg-teal-800 border-4 border-teal-500 flex flex-col items-center p-2 cursor-pointer hover:scale-105 transition-transform" onClick={() => buyItem(game.shopVoucher!)}>
-                                 <div className="text-white font-bold text-center text-sm uppercase border-b border-teal-500 w-full pb-1">{t(lang, `voucher_name_${game.shopVoucher.rawId}`)}</div>
-                                 <div className="flex-1 flex items-center justify-center text-4xl">🎟️</div>
-                                 <div className="text-[10px] text-center text-teal-200 leading-tight">{t(lang, `voucher_desc_${game.shopVoucher.rawId}`)}</div>
-                                 <div className="mt-2 bg-black text-white px-2 py-1 font-bold">${game.shopVoucher.cost}</div>
-                             </div>
-                         ) : (
-                             <div className="w-32 h-48 border-4 border-white/10 flex items-center justify-center text-white/20 font-bold">EMPTY</div>
-                         )}
-                    </div>
-                    
-                    <button onClick={rerollShop} className="w-32 h-24 bg-red-700 border-4 border-red-500 flex flex-col items-center justify-center hover:bg-red-600 shadow-lg">
-                        <div className="text-white font-bold text-lg">{t(lang, 'reroll')}</div>
-                        <div className="text-yellow-300 font-black text-2xl">${game.rerollCost}</div>
-                    </button>
-                    
-                    <button onClick={finishShop} className="px-8 md:px-12 py-4 bg-[#44bd32] text-white text-2xl md:text-3xl font-bold rounded shadow-[0_8px_0_#1e5f12] hover:translate-y-1 hover:shadow-[0_4px_0_#1e5f12] active:translate-y-2 active:shadow-none transition-all border-4 border-black">
-                        {t(lang, 'next_round')}
-                    </button>
+                 {/* 商品货架区 (Flex-1 自适应) */}
+                 <div className="flex-1 p-4 md:p-8 overflow-y-auto flex flex-wrap gap-4 md:gap-8 justify-center content-start bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjM2QyYTJhIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiMzNTI1MjUiLz4KPC9zdmc+')]">
+                     {game.shopItems.length === 0 && <div className="text-3xl text-white/20 font-black uppercase tracking-widest mt-12">{t(lang, 'sold_out')}</div>}
+                     
+                     {game.shopItems.map(item => {
+                         const canAfford = game.money >= item.cost;
+                         return (
+                            <div key={item.id} className={`relative transition-all duration-200 ${canAfford ? 'hover:-translate-y-2 hover:z-10' : 'opacity-60 grayscale'}`}>
+                                 {'rarity' in item ? (
+                                     <JokerComponent joker={item as Joker} price={item.cost} onClick={() => buyItem(item)} language={lang}/>
+                                 ) : 'size' in item ? (
+                                     // Pack Component Style
+                                     <div className="w-24 h-36 md:w-32 md:h-48 bg-gradient-to-br from-gray-700 to-gray-900 border-4 border-gray-400 rounded-xl flex flex-col items-center p-2 cursor-pointer shadow-xl relative group" onClick={() => buyItem(item as Pack)}>
+                                         <div className="text-center font-black text-white text-[10px] md:text-xs uppercase bg-black/50 w-full rounded py-1 truncate border border-white/10">{t(lang, `pack_name_${(item as Pack).rawId}`)}</div>
+                                         <div className="flex-1 flex items-center justify-center text-4xl md:text-5xl group-hover:scale-110 transition-transform">📦</div>
+                                         <div className="text-[8px] text-center text-gray-400 leading-tight bg-black/30 w-full rounded p-1">{t(lang, `pack_desc_${(item as Pack).rawId}`)}</div>
+                                         <div className="absolute -top-3 -right-3 bg-yellow-400 text-black font-black px-2 py-1 rounded shadow-md border border-black z-20 transform rotate-12">${item.cost}</div>
+                                     </div>
+                                 ) : (
+                                     <ConsumableComponent item={item as Consumable} price={item.cost} canBuy={true} onClick={() => buyItem(item)} language={lang} />
+                                 )}
+                            </div>
+                         )
+                     })}
                  </div>
 
-                 {/* Inventory */}
-                 <div className="flex flex-wrap w-full justify-center gap-8 max-w-6xl pb-8">
-                    <div className="flex-1 min-w-[300px]">
-                        <div className="text-sm uppercase mb-2 text-gray-400 font-bold">{t(lang, 'current_jokers')} ({game.jokers.length}/{MAX_JOKERS_DEFAULT + game.jokers.filter(j=>j.edition==='Negative').length})</div>
-                        <div className="flex gap-2 p-4 bg-black/40 rounded border-2 border-black min-h-[160px] items-center justify-center flex-wrap">
-                             {game.jokers.map((joker, idx) => (
-                                <div key={`${joker.id}-${idx}`} className="transform scale-90">
+                 {/* 底部库存栏 (固定高度) */}
+                 <div className="shrink-0 bg-[#1a1a1a] border-t-4 border-black p-2 md:p-4 flex flex-col md:flex-row items-center gap-4 shadow-2xl z-20 mb-6 md:mb-8">
+                    <div className="flex-1 flex gap-4 items-center w-full overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                        {/* Jokers Inventory */}
+                        <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/10 min-w-fit">
+                            <div className="text-[10px] text-gray-500 font-bold w-4 leading-none text-center opacity-50 hidden md:block">J<br/>O<br/>K<br/>E<br/>R</div>
+                            {game.jokers.length === 0 && <span className="text-white/10 text-xs px-4 italic">Empty</span>}
+                            {game.jokers.map((joker, idx) => (
+                                <div key={`${joker.id}-${idx}`} className="transform scale-75 origin-bottom w-16 md:w-20 hover:translate-y-[-10px] transition-transform">
                                     <JokerComponent 
                                         joker={joker} 
                                         index={idx} 
@@ -1252,25 +1297,31 @@ export default function App() {
                                         language={lang}
                                     />
                                 </div>
-                             ))}
+                            ))}
                         </div>
-                    </div>
-                    <div className="flex-1 min-w-[200px]">
-                        <div className="text-sm uppercase mb-2 text-gray-400 font-bold">{t(lang, 'consumables')} ({game.consumables.length}/{MAX_CONSUMABLES})</div>
-                        <div className="flex gap-2 p-4 bg-black/40 rounded border-2 border-black min-h-[160px] items-center justify-center flex-wrap">
+
+                        {/* Consumables Inventory */}
+                        <div className="flex items-center gap-2 bg-black/30 p-2 rounded-lg border border-white/10 min-w-fit">
+                            <div className="text-[10px] text-gray-500 font-bold w-4 leading-none text-center opacity-50 hidden md:block">I<br/>T<br/>E<br/>M</div>
+                            {game.consumables.length === 0 && <span className="text-white/10 text-xs px-4 italic">Empty</span>}
                             {game.consumables.map((item, idx) => (
-                                <div key={`${item.id}-${idx}`} className="transform scale-90">
+                                <div key={`${item.id}-${idx}`} className="transform scale-75 origin-bottom w-16 hover:translate-y-[-10px] transition-transform">
                                     <ConsumableComponent item={item} onClick={() => useConsumable(idx)} language={lang} />
                                 </div>
-                             ))}
+                            ))}
                         </div>
                     </div>
+                    
+                    <button onClick={finishShop} className="w-full md:w-auto px-8 py-4 bg-[#44bd32] text-white text-2xl md:text-3xl font-black uppercase rounded-lg border-b-8 border-r-4 border-[#1e5f12] hover:bg-[#369627] hover:border-b-4 hover:translate-y-1 active:border-b-0 active:translate-y-2 transition-all shadow-xl">
+                        {t(lang, 'next_round')}
+                    </button>
                  </div>
+                 <CopyrightFooter language={lang} />
              </div>
          </div>
       )}
 
-      {/* 6. 出牌阶段 (Playing / Scoring / Victory) - UI 修正版 */}
+      {/* 6. 出牌阶段 (Playing / Scoring / Victory) */}
       {(game.status === 'PLAYING' || game.status === 'SCORING' || game.status === 'VICTORY') && (
         <div className="flex-1 flex flex-col w-full h-full relative z-10 overflow-hidden">
             
@@ -1290,10 +1341,10 @@ export default function App() {
                  </div>
             </div>
 
-            {/* HUD 区域 - 自适应高度，防止重叠 */}
+            {/* HUD 区域 - 自适应高度 */}
             <div className="bg-black/40 w-full flex items-center justify-center px-4 py-2 border-b-4 border-black relative shrink-0 z-40">
                 <div className="w-full max-w-7xl flex flex-col md:flex-row justify-between items-center gap-2">
-                    {/* Joker 区 - 允许换行 */}
+                    {/* Joker 区 */}
                     <div className="flex gap-2 items-center flex-wrap justify-center md:justify-start min-h-[80px] md:min-h-[120px]">
                         {game.jokers.length === 0 && <div className="text-white/20 font-bold text-xl italic tracking-widest px-4 flex items-center">{t(lang, 'no_jokers')}</div>}
                         {game.jokers.map((joker, idx) => (
@@ -1330,13 +1381,12 @@ export default function App() {
                 </div>
             </div>
 
-            {/* 中间游戏区 (Game Area) - Flex 1 自适应高度 */}
+            {/* 中间游戏区 (Game Area) */}
             <div className="flex-1 min-h-0 flex flex-col md:flex-row w-full max-w-7xl mx-auto relative overflow-hidden">
                 
-                {/* 左侧统计栏 - 手机上变横条，PC上变竖条 */}
+                {/* 左侧统计栏 */}
                 <div className="w-full md:w-64 bg-[#222]/90 flex flex-row md:flex-col p-2 md:p-4 border-b-4 md:border-b-0 md:border-r-4 border-black justify-between shadow-2xl backdrop-blur-md z-30 shrink-0">
                     <div className="flex-1 md:flex-none flex flex-row md:flex-col gap-4 items-center md:items-stretch justify-around">
-                        {/* 目标分数面板 */}
                         <div className="bg-red-900/80 p-2 md:p-4 rounded border-4 border-red-600 relative overflow-hidden group flex-1 md:flex-none min-w-[120px] max-w-[200px] md:max-w-none">
                             <div className="text-[10px] md:text-xs uppercase text-red-200 tracking-widest mb-1 font-bold">{t(lang, 'round_score')}</div>
                             <div className="text-xl md:text-3xl font-black text-white drop-shadow-md tracking-tighter tabular-nums">
@@ -1348,7 +1398,6 @@ export default function App() {
                             </div>
                         </div>
                         
-                        {/* 资源统计 */}
                         <div className="flex flex-row md:flex-col gap-2 flex-1 md:flex-none justify-center">
                             <div className="flex flex-col md:flex-row justify-between items-center bg-blue-900/40 p-1 md:p-2 rounded border-2 border-blue-700 flex-1">
                                 <span className="text-blue-200 font-bold text-[10px] md:text-sm">{t(lang, 'hands')}</span>
@@ -1371,17 +1420,15 @@ export default function App() {
                     </div>
                 </div>
 
-                {/* 右侧主操作区 - 包含桌面、手牌、按钮 */}
+                {/* 右侧主操作区 */}
                 <div className="flex-1 flex flex-col relative h-full overflow-hidden">
                     
-                    {/* 排序按钮 */}
                     <div className="absolute top-4 right-4 z-40">
                         <button onClick={toggleSort} className="bg-black/60 px-2 md:px-4 py-1 md:py-2 border-2 border-white/30 text-xs md:text-sm font-bold hover:bg-black/80 transition-colors text-white rounded shadow-lg backdrop-blur-sm">
                             {game.settings.sortBy === 'RANK' ? t(lang, 'sort_rank') : t(lang, 'sort_suit')}
                         </button>
                     </div>
 
-                    {/* 计分板浮窗 - 绝对定位 */}
                     {(game.status === 'SCORING' || game.status === 'VICTORY' || liveScore.chips > 0) && (
                         <div className="absolute top-8 md:top-12 left-0 w-full flex justify-center pointer-events-none z-[60]">
                             <ScoreDisplay 
@@ -1394,9 +1441,7 @@ export default function App() {
                         </div>
                     )}
                     
-                    {/* 牌型预览 (位于手牌上方) */}
                     <div className="flex-1 flex items-center justify-center pb-4 md:pb-0 min-h-0">
-                         {/* Empty space for visual balance or dynamic effects */}
                         {!animating && game.selectedCardIds.length > 0 && (
                              <div className="text-center bg-black/60 px-4 py-1 md:px-6 md:py-2 rounded-full border border-white/20 backdrop-blur-sm mb-auto mt-12 md:mt-16">
                                  <div className="text-[10px] md:text-sm text-gray-300 uppercase tracking-widest">{t(lang, 'current_hand')}</div>
@@ -1410,11 +1455,11 @@ export default function App() {
                         )}
                     </div>
 
-                    {/* 手牌区域 - 固定在底部上方 */}
+                    {/* 手牌区域 */}
                     <div className="flex items-end justify-center px-4 relative overflow-visible shrink-0 pb-4 min-h-[140px] md:min-h-[180px]">
                          <div className="flex -space-x-8 md:-space-x-6 items-end justify-center w-full max-w-full">
                             {game.hand.map((card, index) => (
-                                <div key={card.id} className="transform scale-75 md:scale-100 hover:z-50 transition-all duration-200 origin-bottom hover:-translate-y-4">
+                                <div key={card.id} className="transform scale-75 md:scale-100 hover:z-50 transition-all duration-200 origin-bottom">
                                     <CardComponent
                                         card={card}
                                         index={index}
@@ -1487,7 +1532,15 @@ export default function App() {
         </div>
       )}
 
-      {showSettings && <SettingsModal settings={game.settings} onUpdate={s => setGame(p => ({...p, settings: s}))} onClose={() => setShowSettings(false)} />}
+      {showSettings && (
+         <SettingsModal 
+            settings={game.settings} 
+            onUpdate={s => setGame(p => ({...p, settings: s}))} 
+            onClose={() => setShowSettings(false)} 
+            onGiveUp={returnToMenu}
+            isInGame={game.status === 'PLAYING' || game.status === 'SHOP' || game.status === 'BLIND_SELECT'}
+         />
+      )}
       {showRunInfo && <RunInfoModal onClose={() => setShowRunInfo(false)} language={lang} />}
       
      </div>

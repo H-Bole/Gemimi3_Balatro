@@ -8,9 +8,11 @@ interface Props {
   settings: GameSettings;
   onUpdate: (s: GameSettings) => void;
   onClose: () => void;
+  onGiveUp?: () => void; // 新增回调：放弃游戏
+  isInGame?: boolean;    // 状态：是否在游戏中
 }
 
-export const SettingsModal: React.FC<Props> = ({ settings, onUpdate, onClose }) => {
+export const SettingsModal: React.FC<Props> = ({ settings, onUpdate, onClose, onGiveUp, isInGame }) => {
   const lang = settings.language;
 
   const handleChange = (key: keyof GameSettings, value: any) => {
@@ -103,13 +105,26 @@ export const SettingsModal: React.FC<Props> = ({ settings, onUpdate, onClose }) 
                 </button>
             </div>
         </div>
+        
+        {/* 按钮组 */}
+        <div className="mt-8 flex gap-4">
+            <button 
+                onClick={onClose}
+                className="flex-1 py-4 bg-orange-500 text-white font-bold text-2xl border-4 border-black hover:bg-orange-400 shadow-[4px_4px_0_#000] active:translate-y-1 active:shadow-none"
+            >
+                {t(lang, 'ok')}
+            </button>
 
-        <button 
-            onClick={onClose}
-            className="mt-8 w-full py-4 bg-orange-500 text-white font-bold text-2xl border-4 border-black hover:bg-orange-400 shadow-[4px_4px_0_#000] active:translate-y-1 active:shadow-none"
-        >
-            {t(lang, 'ok')}
-        </button>
+            {/* 放弃本局按钮 - 仅在游戏中显示 */}
+            {isInGame && onGiveUp && (
+                 <button 
+                    onClick={onGiveUp}
+                    className="flex-1 py-4 bg-red-600 text-white font-bold text-2xl border-4 border-black hover:bg-red-500 shadow-[4px_4px_0_#000] active:translate-y-1 active:shadow-none"
+                >
+                    {t(lang, 'give_up')}
+                </button>
+            )}
+        </div>
       </div>
     </div>
   );
