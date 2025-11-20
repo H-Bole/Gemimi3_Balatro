@@ -43,12 +43,11 @@ export interface CardData {
 }
 
 // 小丑牌 (Joker) 定义
+// 注意：名称和描述现已移至 i18n，通过 ID 查找
 export interface Joker {
   id: string;
-  name: string;         
-  nameZh: string;       
-  description: string;  
-  descriptionZh: string;
+  // rawId 用于在 i18n 中查找基础名称 (去掉唯一后缀)
+  rawId: string; 
   rarity: 'Common' | 'Uncommon' | 'Rare' | 'Legendary'; 
   cost: number;         
   
@@ -71,10 +70,7 @@ export interface Joker {
 // 消耗牌 (Consumable) 定义
 export interface Consumable {
     id: string;
-    name: string;
-    nameZh: string;
-    description: string;
-    descriptionZh: string;
+    rawId: string;
     type: 'Planet' | 'Tarot';
     cost: number;
     
@@ -86,23 +82,17 @@ export interface Consumable {
 // 补充包 (Booster Pack) 定义
 export interface Pack {
     id: string;
-    name: string;
-    nameZh: string;
+    rawId: string;
     type: 'Arcana' | 'Celestial' | 'Standard' | 'Buffoon' | 'Spectral';
     cost: number;
     size: number;    // 包里有几张卡
     choices: number; // 可以选几张
-    description: string;
-    descriptionZh: string;
 }
 
 // 标签 (Tag)
 export interface Tag {
     id: string;
-    name: string;
-    nameZh: string;
-    description: string;
-    descriptionZh: string;
+    rawId: string;
     type: 'economy' | 'shop' | 'utility';
     bgClass?: string;
 }
@@ -110,10 +100,7 @@ export interface Tag {
 // 优惠券 (Voucher)
 export interface Voucher {
     id: string;
-    name: string;
-    nameZh: string;
-    description: string;
-    descriptionZh: string;
+    rawId: string;
     cost: number;
     effectId: string; 
 }
@@ -196,8 +183,8 @@ export interface GameSettings {
 // 盲注 (关卡) 定义
 export interface Blind {
   id: string;
-  name: string;
-  nameZh: string;
+  // name 属性已废弃，仅用作调试，显示使用 i18n key
+  nameKey: string;
   type: 'Small' | 'Big' | 'Boss'; 
   scoreBase: number;    
   reward: number;       
@@ -251,9 +238,9 @@ export interface GameState {
   handsLeft: number;      
   discardsLeft: number;   
   
-  currentScore: number;   
+  currentScore: number;   // 累计总分 (Round Total)
   targetScore: number;    
-  roundScore: number;     
+  roundScore: number;     // 上一次手牌得分 (Last Hand Score)
   
   jokers: Joker[];        
   consumables: Consumable[]; 

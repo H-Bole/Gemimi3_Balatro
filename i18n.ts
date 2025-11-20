@@ -1,21 +1,32 @@
 
 export const TRANSLATIONS = {
   ZH: {
-    // Common
+    // --- 通用 (Common) ---
     start_game: "开始游戏",
-    rules: "规则",
-    settings: "设置",
+    rules: "规则手册",
+    settings: "游戏设置",
     game_over: "游戏结束",
-    try_again: "重试",
+    try_again: "再试一次",
     close: "关闭",
     ok: "确认",
     language: "语言 (Language)",
     
-    // Blinds
+    // --- 盲注 (Blinds) ---
     select_blind: "选择盲注",
-    small_blind: "小盲注",
-    big_blind: "大盲注",
-    boss_blind: "Boss 盲注",
+    blind_name_Small: "小盲注",
+    blind_name_Big: "大盲注",
+    blind_name_The_Wall: "高墙",
+    blind_name_The_Club: "梅花",
+    blind_name_The_Goad: "刺棒",
+    blind_name_The_Window: "窗口",
+    blind_name_The_Head: "头像",
+    
+    blind_desc_The_Wall: "特大盲注 (分数要求 4x)",
+    blind_desc_The_Club: "所有梅花牌被削弱",
+    blind_desc_The_Goad: "所有黑桃牌被削弱",
+    blind_desc_The_Window: "所有方块牌被削弱",
+    blind_desc_The_Head: "所有红桃牌被削弱",
+
     select: "选择",
     skip: "跳过",
     reward: "奖励",
@@ -23,62 +34,65 @@ export const TRANSLATIONS = {
     blind: "盲注",
     ante: "底注",
     blind_reward: "盲注奖励",
+    score_reached: "目标达成！",
+    finish_round: "结束本轮",
+    continue_playing: "继续出牌",
 
-    // Shop & Inventory
+    // --- 商店与库存 (Shop & Inventory) ---
     shop: "商店",
     sold_out: "已售罄",
-    current_jokers: "当前持有",
+    current_jokers: "当前小丑",
     consumables: "消耗牌",
     vouchers: "优惠券",
     your_jokers: "你的小丑牌",
-    no_jokers: "无小丑牌",
+    no_jokers: "空空如也",
     buy: "购买",
     sell: "出售",
     redeem: "兑换",
     use: "使用",
-    next_round: "下一注",
+    next_round: "下一轮",
     to_shop: "前往商店",
     reroll: "重随",
     pack_open: "打开",
-    choose_card: "选择一张卡牌",
+    choose_card: "请选择一张卡牌",
     
-    // Interactions
-    select_target_2: "选择 2 张卡牌",
-    select_target_1: "选择 1 张卡牌",
+    // --- 交互 (Interactions) ---
+    select_target_2: "请选择 2 张卡牌",
+    select_target_1: "请选择 1 张卡牌",
     confirm_use: "确认使用",
     cancel: "取消",
     
-    // Game Stats
-    round_score: "回合分数",
-    target: "目标",
-    hands: "出牌次数",
-    discards: "弃牌次数",
+    // --- 游戏统计 (Game Stats) ---
+    round_score: "本轮分数",
+    target: "目标分数",
+    hands: "出牌",
+    discards: "弃牌",
     money: "金钱",
     current_hand: "当前牌型",
     play: "出牌",
     discard: "弃牌",
-    sort_rank: "排序: 点数",
-    sort_suit: "排序: 花色",
+    sort_rank: "点数",
+    sort_suit: "花色",
     hand: "牌型",
     chips: "筹码",
     mult: "倍率",
     level_up: "等级提升!",
     
-    // Cash Out
-    cash_out: "结算",
+    // --- 结算 (Cash Out) ---
+    cash_out: "结算清单",
     hands_left: "剩余出牌",
     discards_left: "剩余弃牌",
-    interest: "利息",
-    total: "合计",
+    interest: "利息收益",
+    total: "总计",
     gold_cards: "黄金牌收益",
 
-    // Settings
+    // --- 设置 (Settings) ---
     master_volume: "主音量",
     music_volume: "音乐音量",
-    crt_effects: "CRT 特效",
-    motion: "背景动画",
+    crt_effects: "CRT 滤镜",
+    motion: "动态背景",
     
-    // Rarities & Types
+    // --- 稀有度与类型 (Rarities & Types) ---
     rarity_Common: "普通",
     rarity_Uncommon: "罕见",
     rarity_Rare: "稀有",
@@ -91,26 +105,151 @@ export const TRANSLATIONS = {
     type_Buffoon: "小丑包",
     type_Spectral: "幻灵包",
 
-    // Editions
+    // --- 版本 (Editions) ---
     edition_Foil: "箔金",
     edition_Holographic: "镭射",
     edition_Polychrome: "多彩",
     edition_Negative: "底片",
 
-    // Tags
-    tag_uncommon: "下一次商店出现罕见小丑",
-    tag_rare: "下一次商店出现稀有小丑",
-    tag_coupon: "下一次商店物品免费",
-    tag_handy: "下一次出牌 +1 级",
-    tag_garbage: "下一次商店刷新免费",
-    tag_investment: "获得 $15",
-    tag_speed: "跳过盲注获得 $5",
+    // --- 标签 (Tags) ---
+    tag_name_tag_uncommon: "罕见标签",
+    tag_desc_tag_uncommon: "下一次商店出现罕见小丑",
+    tag_name_tag_rare: "稀有标签",
+    tag_desc_tag_rare: "下一次商店出现稀有小丑",
+    tag_name_tag_coupon: "优惠券标签",
+    tag_desc_tag_coupon: "下一次商店初始物品免费",
+    tag_name_tag_investment: "投资标签",
+    tag_desc_tag_investment: "获得 $15",
+    tag_name_tag_speed: "速度标签",
+    tag_desc_tag_speed: "跳过盲注获得 $5",
     
-    // Tips
-    tip_debuffed: "削弱",
+    // --- 状态 (Status) ---
+    shattered: "破碎!",
+    retrigger: "再次触发!",
+    debuffed: "被削弱!",
+    tip_debuffed: "已削弱",
+
+    // --- 牌型 (Hand Types) ---
+    hand_High_Card: "高牌",
+    hand_desc_High_Card: "单张点数最大的牌",
+    hand_Pair: "对子",
+    hand_desc_Pair: "2张点数相同的牌",
+    hand_Two_Pair: "两对",
+    hand_desc_Two_Pair: "2组对子",
+    hand_Three_of_a_Kind: "三条",
+    hand_desc_Three_of_a_Kind: "3张点数相同的牌",
+    hand_Straight: "顺子",
+    hand_desc_Straight: "5张点数连续的牌",
+    hand_Flush: "同花",
+    hand_desc_Flush: "5张花色相同的牌",
+    hand_Full_House: "葫芦",
+    hand_desc_Full_House: "三条 + 对子",
+    hand_Four_of_a_Kind: "四条",
+    hand_desc_Four_of_a_Kind: "4张点数相同的牌",
+    hand_Straight_Flush: "同花顺",
+    hand_desc_Straight_Flush: "5张点数连续且花色相同的牌",
+    hand_Royal_Flush: "皇家同花顺",
+    hand_desc_Royal_Flush: "A, K, Q, J, 10 组成的同花顺",
+
+    // --- Joker Names & Descriptions ---
+    joker_name_j_joker: "小丑",
+    joker_desc_j_joker: "+4 倍率",
+    joker_name_j_greedy: "贪婪小丑",
+    joker_desc_j_greedy: "打出方块牌时 +4 倍率",
+    joker_name_j_lusty: "好色小丑",
+    joker_desc_j_lusty: "打出红桃牌时 +4 倍率",
+    joker_name_j_wrathful: "暴怒小丑",
+    joker_desc_j_wrathful: "打出黑桃牌时 +4 倍率",
+    joker_name_j_gluttenous: "暴食小丑",
+    joker_desc_j_gluttenous: "打出梅花牌时 +4 倍率",
+    joker_name_j_droll: "滑稽小丑",
+    joker_desc_j_droll: "如果打出的牌包含同花，+10 倍率",
+    joker_name_j_half: "半个小丑",
+    joker_desc_j_half: "如果打出的牌不超过3张，+20 倍率",
+    joker_name_j_stencil: "小丑模版",
+    joker_desc_j_stencil: "每个空的小丑槽位提供 X1.5 倍率",
+    joker_name_j_banner: "旗帜",
+    joker_desc_j_banner: "每次剩余的弃牌机会提供 +40 筹码",
+    joker_name_j_abstract: "抽象小丑",
+    joker_desc_j_abstract: "每张小丑牌提供 +3 倍率",
+    joker_name_j_bull: "公牛",
+    joker_desc_j_bull: "每拥有 $1 提供 +2 筹码",
+    joker_name_j_even_steven: "偶数史蒂文",
+    joker_desc_j_even_steven: "打出的每一张偶数点数牌提供 +4 倍率",
+    joker_name_j_odd_todd: "奇数托德",
+    joker_desc_j_odd_todd: "打出的每一张奇数点数牌提供 +30 筹码",
+    joker_name_j_scholar: "学者",
+    joker_desc_j_scholar: "打出的每张 A 提供 +4 倍率 和 +20 筹码",
+    joker_name_j_gros_michel: "格罗斯·米歇尔",
+    joker_desc_j_gros_michel: "+15 倍率，回合结束时有 1/4 几率被摧毁",
+    joker_name_j_ice_cream: "冰淇淋",
+    joker_desc_j_ice_cream: "+100 筹码，每打出一手牌 -5 筹码",
+
+    // --- Consumable Names & Descriptions ---
+    cons_name_p_pluto: "冥王星",
+    cons_desc_p_pluto: "升级 高牌",
+    cons_name_p_mercury: "水星",
+    cons_desc_p_mercury: "升级 对子",
+    cons_name_p_uranus: "天王星",
+    cons_desc_p_uranus: "升级 两对",
+    cons_name_p_venus: "金星",
+    cons_desc_p_venus: "升级 三条",
+    cons_name_p_saturn: "土星",
+    cons_desc_p_saturn: "升级 顺子",
+    cons_name_p_jupiter: "木星",
+    cons_desc_p_jupiter: "升级 同花",
+    cons_name_p_earth: "地球",
+    cons_desc_p_earth: "升级 葫芦",
+    cons_name_p_mars: "火星",
+    cons_desc_p_mars: "升级 四条",
+    cons_name_p_neptune: "海王星",
+    cons_desc_p_neptune: "升级 同花顺",
+    
+    cons_name_t_magician: "魔术师",
+    cons_desc_t_magician: "将2张牌增强为幸运牌 (1/5 $20, 1/15 +20倍)",
+    cons_name_t_empress: "皇后",
+    cons_desc_t_empress: "将2张牌增强为倍率牌 (+4 倍率)",
+    cons_name_t_hierophant: "教皇",
+    cons_desc_t_hierophant: "将2张牌增强为奖励牌 (+30 筹码)",
+    cons_name_t_lovers: "恋人",
+    cons_desc_t_lovers: "将1张牌增强为万能牌",
+    cons_name_t_chariot: "战车",
+    cons_desc_t_chariot: "将1张牌增强为钢铁牌 (在手牌时 X1.5倍)",
+    cons_name_t_justice: "正义",
+    cons_desc_t_justice: "将1张牌增强为玻璃牌 (X2倍, 1/4碎裂)",
+    cons_name_t_hermit: "隐者",
+    cons_desc_t_hermit: "金钱翻倍 (最多 $20)",
+    cons_name_t_tower: "塔",
+    cons_desc_t_tower: "将1张牌增强为石头牌 (+50筹码)",
+    cons_name_t_devil: "恶魔",
+    cons_desc_t_devil: "将1张牌增强为黄金牌 (结算+$3)",
+
+    // --- Pack Names & Descriptions ---
+    pack_name_p_arcana_normal: "奥秘包",
+    pack_desc_p_arcana_normal: "3选1 塔罗牌",
+    pack_name_p_celestial_normal: "天体包",
+    pack_desc_p_celestial_normal: "3选1 星球牌",
+    pack_name_p_standard_normal: "标准包",
+    pack_desc_p_standard_normal: "3选1 扑克牌 (可能含特效)",
+    pack_name_p_buffoon_normal: "小丑包",
+    pack_desc_p_buffoon_normal: "2选1 小丑牌",
+
+    // --- Voucher Names & Descriptions ---
+    voucher_name_v_overstock: "积压货",
+    voucher_desc_v_overstock: "商店增加 1 个卡牌槽位",
+    voucher_name_v_clearance: "清仓大甩卖",
+    voucher_desc_v_clearance: "商店所有物品 75 折",
+    voucher_name_v_hone: "磨刀石",
+    voucher_desc_v_hone: "箔金卡牌出现率翻倍 (视觉效果)",
+    voucher_name_v_grabber: "抓取者",
+    voucher_desc_v_grabber: "每回合永久 +1 出牌次数",
+    voucher_name_v_wasteful: "浪费者",
+    voucher_desc_v_wasteful: "每回合永久 +1 弃牌次数",
+    voucher_name_v_seed: "种子资金",
+    voucher_desc_v_seed: "利息上限提升至 $10",
   },
   EN: {
-    // Common
+    // --- Common ---
     start_game: "PLAY",
     rules: "Rules",
     settings: "Settings",
@@ -120,11 +259,22 @@ export const TRANSLATIONS = {
     ok: "OK",
     language: "Language (语言)",
     
-    // Blinds
+    // --- Blinds ---
     select_blind: "SELECT BLIND",
-    small_blind: "Small Blind",
-    big_blind: "Big Blind",
-    boss_blind: "Boss Blind",
+    blind_name_Small: "Small Blind",
+    blind_name_Big: "Big Blind",
+    blind_name_The_Wall: "The Wall",
+    blind_name_The_Club: "The Club",
+    blind_name_The_Goad: "The Goad",
+    blind_name_The_Window: "The Window",
+    blind_name_The_Head: "The Head",
+
+    blind_desc_The_Wall: "Extra large blind (4x Score)",
+    blind_desc_The_Club: "All Club cards are debuffed",
+    blind_desc_The_Goad: "All Spade cards are debuffed",
+    blind_desc_The_Window: "All Diamond cards are debuffed",
+    blind_desc_The_Head: "All Heart cards are debuffed",
+
     select: "Select",
     skip: "Skip",
     reward: "Reward",
@@ -132,8 +282,11 @@ export const TRANSLATIONS = {
     blind: "BLIND",
     ante: "ANTE",
     blind_reward: "Blind Reward",
+    score_reached: "Score Reached!",
+    finish_round: "Cash Out",
+    continue_playing: "Play Hand",
 
-    // Shop & Inventory
+    // --- Shop & Inventory ---
     shop: "SHOP",
     sold_out: "SOLD OUT",
     current_jokers: "Current Loadout",
@@ -151,13 +304,13 @@ export const TRANSLATIONS = {
     pack_open: "OPEN",
     choose_card: "Choose a card",
     
-    // Interactions
+    // --- Interactions ---
     select_target_2: "Select 2 cards",
     select_target_1: "Select 1 card",
     confirm_use: "CONFIRM",
     cancel: "Cancel",
     
-    // Game Stats
+    // --- Game Stats ---
     round_score: "Round Score",
     target: "Target",
     hands: "Hands",
@@ -173,7 +326,7 @@ export const TRANSLATIONS = {
     mult: "Mult",
     level_up: "LEVEL UP!",
     
-    // Cash Out
+    // --- Cash Out ---
     cash_out: "CASH OUT",
     hands_left: "Hands Left",
     discards_left: "Discards Left",
@@ -181,13 +334,13 @@ export const TRANSLATIONS = {
     total: "Total",
     gold_cards: "Gold Cards",
 
-    // Settings
+    // --- Settings ---
     master_volume: "Master Volume",
     music_volume: "Music Volume",
     crt_effects: "CRT Effects",
     motion: "Motion",
     
-    // Rarities & Types
+    // --- Rarities & Types ---
     rarity_Common: "Common",
     rarity_Uncommon: "Uncommon",
     rarity_Rare: "Rare",
@@ -200,29 +353,162 @@ export const TRANSLATIONS = {
     type_Buffoon: "Buffoon Pack",
     type_Spectral: "Spectral Pack",
 
-    // Editions
+    // --- Editions ---
     edition_Foil: "Foil",
     edition_Holographic: "Holographic",
     edition_Polychrome: "Polychrome",
     edition_Negative: "Negative",
 
-    // Tags
-    tag_uncommon: "Next shop has Uncommon Joker",
-    tag_rare: "Next shop has Rare Joker",
-    tag_coupon: "Initial cards in next shop are free",
-    tag_handy: "Level up next hand played",
-    tag_garbage: "Free rerolls next shop",
-    tag_investment: "Gain $15",
-    tag_speed: "Gain $5 per skipped blind",
-    
-    // Tips
+    // --- Tags ---
+    tag_name_tag_uncommon: "Uncommon Tag",
+    tag_desc_tag_uncommon: "Next shop has Uncommon Joker",
+    tag_name_tag_rare: "Rare Tag",
+    tag_desc_tag_rare: "Next shop has Rare Joker",
+    tag_name_tag_coupon: "Coupon Tag",
+    tag_desc_tag_coupon: "Initial cards in next shop are free",
+    tag_name_tag_investment: "Investment Tag",
+    tag_desc_tag_investment: "Gain $15",
+    tag_name_tag_speed: "Speed Tag",
+    tag_desc_tag_speed: "Gain $5 per skipped blind",
+
+    // --- Status ---
+    shattered: "Shattered!",
+    retrigger: "Retrigger!",
+    debuffed: "Debuffed!",
     tip_debuffed: "Debuffed",
+
+    // --- Hand Types ---
+    hand_High_Card: "High Card",
+    hand_desc_High_Card: "Highest value card",
+    hand_Pair: "Pair",
+    hand_desc_Pair: "2 cards of same rank",
+    hand_Two_Pair: "Two Pair",
+    hand_desc_Two_Pair: "2 pairs",
+    hand_Three_of_a_Kind: "Three of a Kind",
+    hand_desc_Three_of_a_Kind: "3 cards of same rank",
+    hand_Straight: "Straight",
+    hand_desc_Straight: "5 consecutive cards",
+    hand_Flush: "Flush",
+    hand_desc_Flush: "5 cards of same suit",
+    hand_Full_House: "Full House",
+    hand_desc_Full_House: "Three of a kind + Pair",
+    hand_Four_of_a_Kind: "Four of a Kind",
+    hand_desc_Four_of_a_Kind: "4 cards of same rank",
+    hand_Straight_Flush: "Straight Flush",
+    hand_desc_Straight_Flush: "5 consecutive cards of same suit",
+    hand_Royal_Flush: "Royal Flush",
+    hand_desc_Royal_Flush: "A, K, Q, J, 10 Flush",
+
+    // --- Joker Names & Descriptions (Fallback to ZH keys mostly matching) ---
+    joker_name_j_joker: "Joker",
+    joker_desc_j_joker: "+4 Mult",
+    joker_name_j_greedy: "Greedy Joker",
+    joker_desc_j_greedy: "+4 Mult if played card is Diamond",
+    joker_name_j_lusty: "Lusty Joker",
+    joker_desc_j_lusty: "+4 Mult if played card is Heart",
+    joker_name_j_wrathful: "Wrathful Joker",
+    joker_desc_j_wrathful: "+4 Mult if played card is Spade",
+    joker_name_j_gluttenous: "Gluttonous Joker",
+    joker_desc_j_gluttenous: "+4 Mult if played card is Club",
+    joker_name_j_droll: "Droll Joker",
+    joker_desc_j_droll: "+10 Mult if played hand contains a Flush",
+    joker_name_j_half: "Half Joker",
+    joker_desc_j_half: "+20 Mult if played hand has 3 or fewer cards",
+    joker_name_j_stencil: "Joker Stencil",
+    joker_desc_j_stencil: "X1.5 Mult for each empty Joker slot",
+    joker_name_j_banner: "Banner",
+    joker_desc_j_banner: "+40 Chips for each remaining Discard",
+    joker_name_j_abstract: "Abstract Joker",
+    joker_desc_j_abstract: "+3 Mult for each Joker card",
+    joker_name_j_bull: "Bull",
+    joker_desc_j_bull: "+2 Chips for each $1 you have",
+    joker_name_j_even_steven: "Even Steven",
+    joker_desc_j_even_steven: "+4 Mult for each even ranked card played",
+    joker_name_j_odd_todd: "Odd Todd",
+    joker_desc_j_odd_todd: "+30 Chips for each odd ranked card played",
+    joker_name_j_scholar: "Scholar",
+    joker_desc_j_scholar: "Played Aces give +20 Chips and +4 Mult",
+    joker_name_j_gros_michel: "Gros Michel",
+    joker_desc_j_gros_michel: "+15 Mult. 1 in 4 chance to destroy at end of round",
+    joker_name_j_ice_cream: "Ice Cream",
+    joker_desc_j_ice_cream: "+100 Chips. -5 Chips for every hand played",
+
+    // --- Consumable Names & Descriptions ---
+    cons_name_p_pluto: "Pluto",
+    cons_desc_p_pluto: "Level up High Card",
+    cons_name_p_mercury: "Mercury",
+    cons_desc_p_mercury: "Level up Pair",
+    cons_name_p_uranus: "Uranus",
+    cons_desc_p_uranus: "Level up Two Pair",
+    cons_name_p_venus: "Venus",
+    cons_desc_p_venus: "Level up Three of a Kind",
+    cons_name_p_saturn: "Saturn",
+    cons_desc_p_saturn: "Level up Straight",
+    cons_name_p_jupiter: "Jupiter",
+    cons_desc_p_jupiter: "Level up Flush",
+    cons_name_p_earth: "Earth",
+    cons_desc_p_earth: "Level up Full House",
+    cons_name_p_mars: "Mars",
+    cons_desc_p_mars: "Level up Four of a Kind",
+    cons_name_p_neptune: "Neptune",
+    cons_desc_p_neptune: "Level up Straight Flush",
+    
+    cons_name_t_magician: "The Magician",
+    cons_desc_t_magician: "Enhance 2 cards to Lucky",
+    cons_name_t_empress: "The Empress",
+    cons_desc_t_empress: "Enhance 2 cards to Mult (+4 Mult)",
+    cons_name_t_hierophant: "The Hierophant",
+    cons_desc_t_hierophant: "Enhance 2 cards to Bonus (+30 Chips)",
+    cons_name_t_lovers: "The Lovers",
+    cons_desc_t_lovers: "Enhance 1 card to Wild",
+    cons_name_t_chariot: "The Chariot",
+    cons_desc_t_chariot: "Enhance 1 card to Steel",
+    cons_name_t_justice: "Justice",
+    cons_desc_t_justice: "Enhance 1 card to Glass",
+    cons_name_t_hermit: "The Hermit",
+    cons_desc_t_hermit: "Double your money (Max $20)",
+    cons_name_t_tower: "The Tower",
+    cons_desc_t_tower: "Enhance 1 card to Stone",
+    cons_name_t_devil: "The Devil",
+    cons_desc_t_devil: "Enhance 1 card to Gold",
+
+    // --- Pack Names & Descriptions ---
+    pack_name_p_arcana_normal: "Arcana Pack",
+    pack_desc_p_arcana_normal: "Choose 1 of 3 Tarot cards",
+    pack_name_p_celestial_normal: "Celestial Pack",
+    pack_desc_p_celestial_normal: "Choose 1 of 3 Planet cards",
+    pack_name_p_standard_normal: "Standard Pack",
+    pack_desc_p_standard_normal: "Choose 1 of 3 Playing cards",
+    pack_name_p_buffoon_normal: "Buffoon Pack",
+    pack_desc_p_buffoon_normal: "Choose 1 of 2 Joker cards",
+
+    // --- Voucher Names & Descriptions ---
+    voucher_name_v_overstock: "Overstock",
+    voucher_desc_v_overstock: "+1 Card slot in shop",
+    voucher_name_v_clearance: "Clearance Sale",
+    voucher_desc_v_clearance: "All cards and packs in shop are 25% off",
+    voucher_name_v_hone: "Hone",
+    voucher_desc_v_hone: "Foil cards appear 2x more often",
+    voucher_name_v_grabber: "Grabber",
+    voucher_desc_v_grabber: "Permanently gain +1 Hand per round",
+    voucher_name_v_wasteful: "Wasteful",
+    voucher_desc_v_wasteful: "Permanently gain +1 Discard per round",
+    voucher_name_v_seed: "Seed Money",
+    voucher_desc_v_seed: "Raise interest cap to $10",
   }
 };
 
 export type Language = 'ZH' | 'EN';
 
-export const t = (lang: Language, key: string) => {
+// 通用翻译函数，支持 id 参数替换
+export const t = (lang: Language, key: string, params?: Record<string, string | number>) => {
   const k = key as keyof typeof TRANSLATIONS['EN'];
-  return TRANSLATIONS[lang][k] || key;
+  let text = TRANSLATIONS[lang][k] || TRANSLATIONS['EN'][k] || key;
+  
+  if (params) {
+      Object.entries(params).forEach(([pkey, pval]) => {
+          text = text.replace(`{${pkey}}`, String(pval));
+      });
+  }
+  return text;
 };

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HAND_SCALING } from '../constants';
 import { HandType } from '../types';
@@ -14,17 +15,17 @@ export const RunInfoModal: React.FC<Props> = ({ onClose, language = 'ZH' }) => {
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div 
-        className="w-[600px] max-h-[80vh] bg-[#2c3e50] border-4 border-white shadow-[10px_10px_0_#000] flex flex-col relative"
+        className="w-[95vw] md:w-[600px] max-h-[80vh] bg-[#2c3e50] border-4 border-white shadow-[10px_10px_0_#000] flex flex-col relative"
         onClick={e => e.stopPropagation()}
       >
         <div className="bg-red-600 text-white p-4 border-b-4 border-black flex justify-between items-center">
-             <h2 className="text-3xl font-black uppercase tracking-widest text-shadow-retro">{t(language, 'rules')}</h2>
+             <h2 className="text-2xl md:text-3xl font-black uppercase tracking-widest text-shadow-retro">{t(language, 'rules')}</h2>
              <button onClick={onClose} className="text-2xl font-bold hover:text-gray-200">X</button>
         </div>
         
-        <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
+        <div className="p-4 md:p-6 overflow-y-auto custom-scrollbar flex-1">
             <div className="space-y-2">
-                <div className="grid grid-cols-12 gap-2 text-gray-400 text-sm uppercase font-bold mb-2 px-2">
+                <div className="grid grid-cols-12 gap-2 text-gray-400 text-xs md:text-sm uppercase font-bold mb-2 px-2">
                     <div className="col-span-5">{t(language, 'hand')}</div>
                     <div className="col-span-3 text-center">{t(language, 'chips')}</div>
                     <div className="col-span-1 text-center">X</div>
@@ -32,20 +33,20 @@ export const RunInfoModal: React.FC<Props> = ({ onClose, language = 'ZH' }) => {
                 </div>
                 {hands.map((hand) => {
                     const stats = HAND_SCALING[hand];
-                    const label = language === 'ZH' ? stats.labelZh : stats.label;
-                    const desc = language === 'ZH' ? stats.descriptionZh : stats.description;
+                    const label = t(language, stats.nameKey);
+                    const desc = t(language, `hand_desc_${hand.replace(/ /g, '_')}`); // Construct key dynamically
                     
                     return (
-                        <div key={hand} className="grid grid-cols-12 gap-2 items-center bg-black/30 p-3 rounded border border-white/10 hover:bg-white/10 transition-colors">
+                        <div key={hand} className="grid grid-cols-12 gap-2 items-center bg-black/30 p-2 md:p-3 rounded border border-white/10 hover:bg-white/10 transition-colors">
                             <div className="col-span-5">
-                                <div className="font-bold text-lg text-white">{label}</div>
-                                <div className="text-xs text-gray-400">{desc}</div>
+                                <div className="font-bold text-sm md:text-lg text-white">{label}</div>
+                                <div className="text-[10px] md:text-xs text-gray-400 leading-tight">{desc}</div>
                             </div>
-                            <div className="col-span-3 text-center font-black text-2xl text-[#009ddc] drop-shadow-sm">
+                            <div className="col-span-3 text-center font-black text-lg md:text-2xl text-[#009ddc] drop-shadow-sm">
                                 {stats.baseChips}
                             </div>
                             <div className="col-span-1 text-center text-gray-500 font-bold">X</div>
-                            <div className="col-span-3 text-center font-black text-2xl text-[#FE5F55] drop-shadow-sm">
+                            <div className="col-span-3 text-center font-black text-lg md:text-2xl text-[#FE5F55] drop-shadow-sm">
                                 {stats.baseMult}
                             </div>
                         </div>

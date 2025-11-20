@@ -12,8 +12,8 @@ interface Props {
 }
 
 export const ConsumableComponent: React.FC<Props> = ({ item, onClick, canBuy, price, language = 'ZH' }) => {
-  const name = (language === 'ZH' && item.nameZh) ? item.nameZh : item.name;
-  const desc = (language === 'ZH' && item.descriptionZh) ? item.descriptionZh : item.description;
+  const name = t(language, `cons_name_${item.rawId}`);
+  const desc = t(language, `cons_desc_${item.rawId}`);
   const typeLabel = t(language, `type_${item.type}`);
   
   const bgClass = item.type === 'Planet' ? 'bg-blue-600 border-blue-800' : 'bg-purple-600 border-purple-800';
