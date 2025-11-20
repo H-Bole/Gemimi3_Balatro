@@ -1,6 +1,6 @@
 
 import { CardData, HandResult, HandType, Rank, Suit, Joker, Blind, BossAbility, HandLevel, Consumable, Pack, Edition, Enhancement, ScoreReport, ScoringEvent } from "../types";
-import { HAND_SCALING, BOSS_BLINDS, BASE_ANTE_SCORE, AVAILABLE_JOKERS, PLANET_CARDS, TAROT_CARDS, PACKS, EDITION_VALUES, ENHANCEMENT_VALUES, MAX_JOKERS_DEFAULT } from "../constants";
+import { HAND_SCALING, BASE_ANTE_SCORE, AVAILABLE_JOKERS, PLANET_CARDS, TAROT_CARDS, PACKS, EDITION_VALUES, ENHANCEMENT_VALUES, MAX_JOKERS_DEFAULT, BOSS_BLINDS } from "../constants";
 
 // --- 牌组生成与洗牌 (Deck Generation & Shuffling) ---
 
@@ -48,6 +48,7 @@ export const createCard = (suit: Suit, rank: Rank, id?: string): CardData => {
  * 生成当前底注 (Ante) 的盲注列表
  */
 export const generateBlinds = (ante: number): Blind[] => {
+    // 随机选择一个 Boss
     const boss = BOSS_BLINDS[Math.floor(Math.random() * BOSS_BLINDS.length)];
     
     const small: Blind = {
@@ -70,7 +71,7 @@ export const generateBlinds = (ante: number): Blind[] => {
         id: `blind_boss_${ante}`,
         nameKey: boss.nameKey,
         type: 'Boss',
-        scoreBase: boss.ability === 'The Wall' ? 4 : 2, 
+        scoreBase: boss.ability === 'The Wall' ? 4 : 2, // 墙是 4x，其他通常是 2x
         reward: 5,
         bossAbility: boss.ability
     };
@@ -94,7 +95,7 @@ export const getBlindScore = (blind: Blind, ante: number): number => {
     else if (ante === 5) anteBase = 11000;
     else if (ante === 6) anteBase = 20000;
     else if (ante === 7) anteBase = 35000;
-    else if (ante === 8) anteBase = 50000; // 实际上原版增长更快，这里做平衡处理
+    else if (ante === 8) anteBase = 50000; 
     else {
         anteBase = Math.floor(50000 * Math.pow(1.5, ante - 8));
     }
@@ -218,7 +219,6 @@ export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandT
           }
       }
       // 特殊顺子: A, 2, 3, 4, 5 (Wheel)
-      // 逻辑中 A=14, 所以检测是否有 14, 5, 4, 3, 2
       if (!isStraight) {
           if (uniqueRanks.includes(14) && uniqueRanks.includes(2) && uniqueRanks.includes(3) && uniqueRanks.includes(4) && uniqueRanks.includes(5)) {
             isStraight = true;
@@ -265,47 +265,47 @@ export const evaluateHand = (selectedCards: CardData[], handLevels: Record<HandT
 
 /**
  * Balatro 核心计分算法
- * 顺序：
- * 1. 牌型基础分 (Base Hand)
- * 2. 打出的牌 (Played Cards) - 从左到右
- *    - 卡牌触发 (+Chips, +Mult)
- *    - 针对特定卡牌的 Joker 触发 (如贪婪小丑)
- *    - 如果有红蜡戳(Red Seal)，会完全重复上述过程
- * 3. 手持牌 (Held Cards) - 从左到右
- *    - 钢铁牌
- *    - 男爵等 Joker
- * 4. 小丑牌 (Jokers) - 从左到右
- *    - 独立效果 (+Mult, +Chips)
- *    - 乘法效果 (xMult)
  */
 export const calculateScore = (
   handResult: HandResult,
   jokers: Joker[],
   allCardsInHand: CardData[], 
-  gameState: { money: number; discardsLeft: number; jokerCount: number }
+  gameState: { money: number; discardsLeft: number; jokerCount: number; bossAbility?: BossAbility }
 ): ScoreReport => {
   
   const timeline: ScoringEvent[] = [];
   const destroyedCards: string[] = [];
   let goldGained = 0;
+  let moneyLoss = 0;
 
-  // 状态变量，用于在事件流中累积
   let currentChips = handResult.baseChips;
   let currentMult = handResult.baseMult;
+  
+  // Boss Effect: The Flint (Base Chips/Mult halved)
+  if (gameState.bossAbility === 'The Flint') {
+      currentChips = Math.floor(currentChips * 0.5);
+      currentMult = Math.floor(currentMult * 0.5);
+      timeline.push({ type: 'boss_effect', sourceId: 'boss', sourceType: 'boss', message: 'Halved Base' });
+  }
 
   // 0. 初始牌型事件
   timeline.push({
       type: 'hand_base',
       sourceId: 'base',
       sourceType: 'hand',
-      chipsAdded: handResult.baseChips,
-      multAdded: handResult.baseMult,
+      chipsAdded: currentChips,
+      multAdded: currentMult,
       message: `${handResult.handType}`
   });
 
   // --- 阶段 1: 打出的卡牌 (Played Cards) ---
   
   handResult.cards.forEach(card => {
+    // Boss Effect: The Tooth (Lose $1 per card)
+    if (gameState.bossAbility === 'The Tooth') {
+        moneyLoss += 1;
+    }
+
     // Boss Debuff 检查
     if (card.isDebuffed) {
         timeline.push({ type: 'card_score', sourceId: card.id, sourceType: 'card', message: "Debuffed" });
@@ -349,7 +349,7 @@ export const calculateScore = (
         if (card.enhancement === 'Glass') {
             currentMult *= 2;
             timeline.push({ type: 'card_score', sourceId: card.id, sourceType: 'card', x_mult: 2, message: 'X2 Mult' });
-            // 玻璃牌破碎判定 (25% 概率) - 仅在第一次触发时判断
+            // 玻璃牌破碎判定
             if (!isRetrigger && Math.random() < (ENHANCEMENT_VALUES.Glass.breakChance || 0.25)) {
                  destroyedCards.push(card.id);
                  timeline.push({ type: 'glass_break', sourceId: card.id, sourceType: 'card', message: "Shattered" });
@@ -375,8 +375,6 @@ export const calculateScore = (
         }
 
         // 1.4 响应“打出卡牌”的小丑 (Card Played Jokers)
-        // 这种 Joker 像“打出红桃+4 Mult”是跟随卡牌结算的，不是最后结算
-        // 注意：如果是 Retrigger，这些小丑也会再次触发
         jokers.forEach(joker => {
             if (joker.triggerType === 'card_played' && !joker.isDebuffed) {
                 const conditionMet = joker.condition ? joker.condition(handResult.handType, [card], {chips: currentChips, mult: currentMult}) : true;
@@ -402,7 +400,6 @@ export const calculateScore = (
   });
 
   // --- 阶段 2: 手持卡牌效果 (Held Cards) ---
-  // 计算哪些卡还在手里
   const playedIds = handResult.cards.map(c => c.id);
   const heldCards = allCardsInHand.filter(c => !playedIds.includes(c.id)); 
   
@@ -422,40 +419,37 @@ export const calculateScore = (
               currentMult *= 1.5;
               timeline.push({ type: 'held_trigger', sourceId: card.id, sourceType: 'card', x_mult: 1.5, message: 'X1.5 Mult' });
           }
-          // 可以在此扩展男爵 (King x1.5) 等逻辑
       }
   });
 
   // --- 阶段 3: 小丑结算阶段 (Joker Phase) ---
-  // 严格从左到右执行。这决定了 +Mult 和 XMult 的顺序。
+  // 严格从左到右执行
   
   jokers.forEach(joker => {
       if (joker.isDebuffed) return;
 
       // 3.1 触发独立效果 (Ability)
-      // 仅处理非 'card_played' 类型的 Joker (如独立加分、回合结束加分)
       if (joker.triggerType !== 'card_played') {
           
           let val = joker.value;
           let msg = '';
           let triggered = false;
           
-          // 检查条件
           const conditionMet = !joker.condition || joker.condition(handResult.handType, handResult.cards, {chips: currentChips, mult: currentMult});
 
           if (conditionMet) {
               // 特殊 Joker 逻辑处理
               switch (joker.rawId) {
-                  case 'j_bull': // 牛：每金币+2筹码
+                  case 'j_bull': 
                       val = gameState.money * 2;
                       break;
-                  case 'j_banner': // 旗帜：每剩余弃牌+40筹码
+                  case 'j_banner': 
                       val = gameState.discardsLeft * 40;
                       break;
-                  case 'j_abstract': // 抽象：每张Joker+3倍率
+                  case 'j_abstract': 
                       val = gameState.jokerCount * 3;
                       break;
-                  case 'j_stencil': // 模版：空槽位 X1.5
+                  case 'j_stencil': 
                       const emptySlots = MAX_JOKERS_DEFAULT - jokers.length;
                       if (emptySlots > 0) {
                           for(let i=0; i<emptySlots; i++) {
@@ -467,7 +461,7 @@ export const calculateScore = (
                       break;
               }
 
-              // 通用逻辑 (排除已处理的特殊逻辑)
+              // 通用逻辑
               if (joker.rawId !== 'j_stencil') {
                   if (joker.type === 'flat_mult') {
                       currentMult += val;
@@ -499,7 +493,6 @@ export const calculateScore = (
       }
 
       // 3.2 触发版本效果 (Joker Editions)
-      // Balatro 中 Joker 的 Foil/Holo/Poly 是在该 Joker 技能触发后立刻结算的
       if (joker.edition) {
           if (joker.edition === 'Foil') {
               currentChips += 50;
@@ -522,6 +515,7 @@ export const calculateScore = (
       total: total,
       timeline,
       destroyedCards,
-      goldGained
+      goldGained,
+      moneyLoss
   };
 };

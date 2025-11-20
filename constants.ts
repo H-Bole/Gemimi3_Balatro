@@ -52,6 +52,19 @@ export const BOSS_BLINDS: Array<{ nameKey: string; ability: BossAbility }> = [
     { nameKey: 'blind_name_The_Goad', ability: 'The Goad' },
     { nameKey: 'blind_name_The_Window', ability: 'The Window' },
     { nameKey: 'blind_name_The_Head', ability: 'The Head' },
+    { nameKey: 'blind_name_The_Needle', ability: 'The Needle' },
+    { nameKey: 'blind_name_The_Water', ability: 'The Water' },
+    { nameKey: 'blind_name_The_Manacle', ability: 'The Manacle' },
+    { nameKey: 'blind_name_The_Plant', ability: 'The Plant' },
+    { nameKey: 'blind_name_The_Eye', ability: 'The Eye' },
+    { nameKey: 'blind_name_The_Mouth', ability: 'The Mouth' },
+    { nameKey: 'blind_name_The_Psychic', ability: 'The Psychic' },
+    { nameKey: 'blind_name_The_Tooth', ability: 'The Tooth' },
+    { nameKey: 'blind_name_The_Flint', ability: 'The Flint' },
+    { nameKey: 'blind_name_The_Mark', ability: 'The Mark' },
+    { nameKey: 'blind_name_The_Arm', ability: 'The Arm' },
+    { nameKey: 'blind_name_The_Ox', ability: 'The Ox' },
+    { nameKey: 'blind_name_The_Serpent', ability: 'The Serpent' },
 ];
 
 // --- 标签池 (Tags) ---
@@ -75,7 +88,6 @@ export const VOUCHERS: Voucher[] = [
 
 
 // --- 牌型基础数值与升级规则 (Hand Scaling) ---
-// label 和 description 移至 i18n，使用 key
 export const HAND_SCALING: Record<HandType, { baseChips: number; baseMult: number; levelChips: number; levelMult: number; nameKey: string }> = {
   [HandType.HighCard]: { 
       baseChips: 5, baseMult: 1, levelChips: 10, levelMult: 1, nameKey: 'hand_High_Card'

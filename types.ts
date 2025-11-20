@@ -21,8 +21,7 @@ export type Edition = 'Foil' | 'Holographic' | 'Polychrome' | 'Negative' | null;
 // 增强 (Enhancements) - 改变卡牌功能
 export type Enhancement = 'Bonus' | 'Mult' | 'Wild' | 'Glass' | 'Steel' | 'Stone' | 'Gold' | 'Lucky' | null;
 
-// 蜡戳 (Seals) - 额外特效
-// Red: 重新触发1次; Blue: 最后一手打出握在手中生成行星; Gold: 打出给$3; Purple: 弃掉生成塔罗
+// 蜡戳 (Seals)
 export type Seal = 'Red' | 'Blue' | 'Gold' | 'Purple' | null;
 
 // 单张卡牌的数据结构
@@ -31,11 +30,12 @@ export interface CardData {
   suit: Suit;           // 花色
   rank: Rank;           // 点数
   
-  edition: Edition;     // 版本 (Foil/Holo/Poly)
-  enhancement: Enhancement; // 增强 (Bonus/Mult/Wild/Glass/Steel...)
-  seal: Seal;           // 蜡戳 (Seal)
+  edition: Edition;     // 版本
+  enhancement: Enhancement; // 增强
+  seal: Seal;           // 蜡戳
   
   isDebuffed?: boolean; // 是否被削弱 (Boss 盲注效果)
+  isFaceDown?: boolean; // 是否背面朝上 (The Mark Boss效果)
   
   // 前端动画状态机
   animationState?: 'idle' | 'dealing' | 'scoring' | 'discarding' | 'destroyed'; 
@@ -43,27 +43,22 @@ export interface CardData {
 }
 
 // 小丑牌 (Joker) 定义
-// 注意：名称和描述现已移至 i18n，通过 ID 查找
 export interface Joker {
   id: string;
-  // rawId 用于在 i18n 中查找基础名称 (去掉唯一后缀)
   rawId: string; 
   rarity: 'Common' | 'Uncommon' | 'Rare' | 'Legendary'; 
   cost: number;         
   
-  edition: Edition;     // Joker 也可以有版本
+  edition: Edition;     
 
   type: 'flat_mult' | 'flat_chips' | 'x_mult' | 'money_gen' | 'utility'; 
   value: number;        
   
-  // 触发类型：是“打出每张牌时”触发，还是“整手牌”触发
   triggerType?: 'card_played' | 'independent' | 'held' | 'discard';
   
-  // 触发条件回调
   condition?: (handType: HandType, playedCards: CardData[], scoringState?: { chips: number, mult: number }) => boolean;
   
-  probability?: number; // 触发概率 (如 1/4 损坏)
-
+  probability?: number; 
   isDebuffed?: boolean;
 }
 
@@ -73,10 +68,8 @@ export interface Consumable {
     rawId: string;
     type: 'Planet' | 'Tarot';
     cost: number;
-    
-    targetHand?: HandType; // 星球牌专用
-    
-    effectId?: string; // 塔罗牌效果ID
+    targetHand?: HandType; 
+    effectId?: string; 
 }
 
 // 补充包 (Booster Pack) 定义
@@ -85,8 +78,8 @@ export interface Pack {
     rawId: string;
     type: 'Arcana' | 'Celestial' | 'Standard' | 'Buffoon' | 'Spectral';
     cost: number;
-    size: number;    // 包里有几张卡
-    choices: number; // 可以选几张
+    size: number;    
+    choices: number; 
 }
 
 // 标签 (Tag)
@@ -135,39 +128,40 @@ export interface HandResult {
   level: number;        
 }
 
-// --- 计分事件系统 (Scoring Event System) ---
-// 用于前端逐步播放动画，而不是瞬间显示结果
+// 计分事件类型
 export type ScoringEventType = 
-    | 'hand_base'       // 基础牌型分
-    | 'card_score'      // 卡牌计分 (筹码/倍率)
-    | 'card_edition'    // 卡牌版本效果 (Holo/Poly等)
-    | 'card_retrigger'  // 蜡戳/效果导致的重触发
-    | 'held_trigger'    // 手持卡触发 (钢铁)
-    | 'joker_trigger'   // 小丑触发
-    | 'glass_break'     // 玻璃牌破碎
-    | 'multiplier_update'; // 单纯更新倍率显示
+    | 'hand_base'       
+    | 'card_score'      
+    | 'card_edition'    
+    | 'card_retrigger'  
+    | 'held_trigger'    
+    | 'joker_trigger'   
+    | 'glass_break'     
+    | 'multiplier_update'
+    | 'boss_effect'; // 新增 Boss 效果事件
 
 export interface ScoringEvent {
     type: ScoringEventType;
-    sourceId: string;   // 触发来源ID (Card ID 或 Joker ID)
-    sourceType: 'card' | 'joker' | 'hand';
+    sourceId: string;   
+    sourceType: 'card' | 'joker' | 'hand' | 'boss';
     
-    chipsAdded?: number; // 增加的筹码
-    multAdded?: number;  // 增加的倍率
-    x_mult?: number;     // 乘以的倍率
+    chipsAdded?: number; 
+    multAdded?: number;  
+    x_mult?: number;     
     
-    message?: string;    // 浮动文字内容 (如 "+4 Mult", "X1.5 Mult")
+    message?: string;    
     isRetrigger?: boolean; 
 }
 
-// 计分报告结构体 (包含完整的时间轴)
+// 计分报告
 export interface ScoreReport {
     chips: number;
     mult: number;
     total: number;
-    timeline: ScoringEvent[]; // 动画时间轴
-    destroyedCards: string[]; // 被摧毁的卡牌ID
-    goldGained: number;       // 获得的金钱
+    timeline: ScoringEvent[]; 
+    destroyedCards: string[]; 
+    goldGained: number;       
+    moneyLoss: number; // The Tooth Boss 效果
 }
 
 // 游戏设置
@@ -180,18 +174,38 @@ export interface GameSettings {
   language: 'ZH' | 'EN';   
 }
 
-// 盲注 (关卡) 定义
+// Boss 能力枚举 (完整版)
+export type BossAbility = 
+  | 'The Wall' 
+  | 'The Club' 
+  | 'The Goad' 
+  | 'The Window' 
+  | 'The Head' 
+  | 'The Needle' 
+  | 'The Water' 
+  | 'The Manacle' 
+  | 'The Plant' 
+  | 'The Eye'     // 无重复牌型
+  | 'The Mouth'   // 只能打出一种牌型
+  | 'The Serpent' // 弃牌/出牌后抽3张
+  | 'The Pillar'  // 本局打过的牌 debuff (未完全实现逻辑，暂留)
+  | 'The Psychic' // 必须打5张
+  | 'The Tooth'   // 每打一张 -$1
+  | 'The Mark'    // 人头牌背面朝上
+  | 'The Flint'   // 基础筹码倍率减半
+  | 'The Arm'     // 降低牌型等级
+  | 'The Ox'      // 归零金钱
+  | 'None';
+
+// 盲注定义
 export interface Blind {
   id: string;
-  // name 属性已废弃，仅用作调试，显示使用 i18n key
   nameKey: string;
   type: 'Small' | 'Big' | 'Boss'; 
   scoreBase: number;    
   reward: number;       
   bossAbility?: BossAbility; 
 }
-
-export type BossAbility = 'The Wall' | 'The Club' | 'The Goad' | 'The Window' | 'The Head' | 'None';
 
 // 结算清单项
 export interface CashOutItem {
@@ -205,23 +219,23 @@ export interface CashOutReport {
     currentStep: number; 
 }
 
-// 卡牌选择模式 (用于塔罗牌/补充包)
+// 选择状态
 export interface SelectionState {
     mode: 'TAROT' | 'PACK';
-    maxSelect: number; // 塔罗牌需要选几张，或包能拿几张
-    sourceItemId?: string; // 来源ID
-    generatedCards?: (CardData | Joker | Consumable)[]; // Pack 开出的卡
-    callbackId?: string; // 效果ID (如 enhance_gold)
+    maxSelect: number; 
+    sourceItemId?: string; 
+    generatedCards?: (CardData | Joker | Consumable)[]; 
+    callbackId?: string; 
 }
 
-// 触发反馈状态 (用于 UI 显示触发动画)
+// 触发状态
 export interface TriggerState {
-    id: string;           // 触发的卡牌/Joker ID
-    text: string;         // 显示的文字 (e.g., "+10")
+    id: string;           
+    text: string;         
     type: 'chips' | 'mult' | 'x_mult' | 'other';
 }
 
-// 全局游戏状态 (State Machine)
+// 全局游戏状态
 export interface GameState {
   deck: CardData[];       
   hand: CardData[];       
@@ -238,30 +252,32 @@ export interface GameState {
   handsLeft: number;      
   discardsLeft: number;   
   
-  currentScore: number;   // 累计总分 (Round Total)
+  currentScore: number;   
   targetScore: number;    
-  roundScore: number;     // 上一次手牌得分 (Last Hand Score)
+  roundScore: number;     
   
   jokers: Joker[];        
   consumables: Consumable[]; 
   
   handLevels: Record<HandType, HandLevel>; 
   
-  shopItems: (Joker | Consumable | Pack)[]; // 商店物品 (混合)
+  shopItems: (Joker | Consumable | Pack)[]; 
   shopVoucher: Voucher | null;          
-  rerollCost: number; // 当前重随价格
+  rerollCost: number; 
   
   activeTags: Tag[];                    
   redeemedVouchers: string[];           
   
-  // 游戏流程状态
+  // 状态追踪 (Boss 机制需要)
+  playedHandTypes: HandType[]; // 本轮已打出的牌型 (The Eye, The Mouth)
+  
   status: 'MENU' | 'BLIND_SELECT' | 'PLAYING' | 'SCORING' | 'VICTORY' | 'CASHOUT' | 'SHOP' | 'GAME_OVER' | 'PACK_OPEN';
   
   cashOutReport?: CashOutReport; 
   selectionState?: SelectionState; 
   
-  triggerState?: TriggerState | null; // 当前正在播放的触发动画 (Popups)
-  activeCardId?: string | null;      // 当前正在计分的卡牌/Joker ID (高亮光圈)
+  triggerState?: TriggerState | null; 
+  activeCardId?: string | null;      
   
   settings: GameSettings; 
 }

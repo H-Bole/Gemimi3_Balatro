@@ -4,7 +4,7 @@ export const TRANSLATIONS = {
     // --- 通用 (Common) ---
     start_game: "开始游戏",
     rules: "规则手册",
-    settings: "游戏设置",
+    settings: "设置",
     game_over: "游戏结束",
     try_again: "再试一次",
     close: "关闭",
@@ -15,17 +15,48 @@ export const TRANSLATIONS = {
     select_blind: "选择盲注",
     blind_name_Small: "小盲注",
     blind_name_Big: "大盲注",
+    
+    // Boss 盲注名称
     blind_name_The_Wall: "高墙",
     blind_name_The_Club: "梅花",
     blind_name_The_Goad: "刺棒",
     blind_name_The_Window: "窗口",
     blind_name_The_Head: "头像",
-    
+    blind_name_The_Needle: "长针",
+    blind_name_The_Water: "水",
+    blind_name_The_Manacle: "手铐",
+    blind_name_The_Eye: "眼睛",
+    blind_name_The_Mouth: "嘴巴",
+    blind_name_The_Plant: "植物",
+    blind_name_The_Serpent: "巨蛇",
+    blind_name_The_Pillar: "支柱",
+    blind_name_The_Psychic: "超能者",
+    blind_name_The_Tooth: "牙齿",
+    blind_name_The_Mark: "印记",
+    blind_name_The_Flint: "燧石",
+    blind_name_The_Arm: "手臂",
+    blind_name_The_Ox: "公牛",
+
+    // Boss 盲注描述
     blind_desc_The_Wall: "特大盲注 (分数要求 4x)",
     blind_desc_The_Club: "所有梅花牌被削弱",
     blind_desc_The_Goad: "所有黑桃牌被削弱",
     blind_desc_The_Window: "所有方块牌被削弱",
     blind_desc_The_Head: "所有红桃牌被削弱",
+    blind_desc_The_Needle: "只有 1 次出牌机会",
+    blind_desc_The_Water: "0 次弃牌机会",
+    blind_desc_The_Manacle: "手牌上限 -1",
+    blind_desc_The_Eye: "本轮禁止重复打出相同牌型",
+    blind_desc_The_Mouth: "本轮只能打出一种牌型",
+    blind_desc_The_Plant: "所有人头牌被削弱",
+    blind_desc_The_Serpent: "弃牌或出牌后总是抽取 3 张牌",
+    blind_desc_The_Pillar: "本轮使用过的小丑失效 (未实装)",
+    blind_desc_The_Psychic: "必须打出 5 张牌",
+    blind_desc_The_Tooth: "每打出一张牌损失 $1",
+    blind_desc_The_Mark: "所有人头牌背面朝上",
+    blind_desc_The_Flint: "基础筹码和倍率减半",
+    blind_desc_The_Arm: "使打出的扑克牌型等级降低 1 级",
+    blind_desc_The_Ox: "打出当前最常用的牌型会使金钱归零",
 
     select: "选择",
     skip: "跳过",
@@ -61,6 +92,9 @@ export const TRANSLATIONS = {
     select_target_1: "请选择 1 张卡牌",
     confirm_use: "确认使用",
     cancel: "取消",
+    not_allowed_psychic: "必须打出 5 张牌!",
+    not_allowed_eye: "不能重复打出此牌型!",
+    not_allowed_mouth: "只能打出这一种牌型!",
     
     // --- 游戏统计 (Game Stats) ---
     round_score: "本轮分数",
@@ -206,23 +240,23 @@ export const TRANSLATIONS = {
     cons_desc_p_neptune: "升级 同花顺",
     
     cons_name_t_magician: "魔术师",
-    cons_desc_t_magician: "将2张牌增强为幸运牌 (1/5 $20, 1/15 +20倍)",
+    cons_desc_t_magician: "将2张牌增强为幸运牌",
     cons_name_t_empress: "皇后",
-    cons_desc_t_empress: "将2张牌增强为倍率牌 (+4 倍率)",
+    cons_desc_t_empress: "将2张牌增强为倍率牌",
     cons_name_t_hierophant: "教皇",
-    cons_desc_t_hierophant: "将2张牌增强为奖励牌 (+30 筹码)",
+    cons_desc_t_hierophant: "将2张牌增强为奖励牌",
     cons_name_t_lovers: "恋人",
     cons_desc_t_lovers: "将1张牌增强为万能牌",
     cons_name_t_chariot: "战车",
-    cons_desc_t_chariot: "将1张牌增强为钢铁牌 (在手牌时 X1.5倍)",
+    cons_desc_t_chariot: "将1张牌增强为钢铁牌",
     cons_name_t_justice: "正义",
-    cons_desc_t_justice: "将1张牌增强为玻璃牌 (X2倍, 1/4碎裂)",
+    cons_desc_t_justice: "将1张牌增强为玻璃牌",
     cons_name_t_hermit: "隐者",
     cons_desc_t_hermit: "金钱翻倍 (最多 $20)",
     cons_name_t_tower: "塔",
-    cons_desc_t_tower: "将1张牌增强为石头牌 (+50筹码)",
+    cons_desc_t_tower: "将1张牌增强为石头牌",
     cons_name_t_devil: "恶魔",
-    cons_desc_t_devil: "将1张牌增强为黄金牌 (结算+$3)",
+    cons_desc_t_devil: "将1张牌增强为黄金牌",
 
     // --- Pack Names & Descriptions ---
     pack_name_p_arcana_normal: "奥秘包",
@@ -230,7 +264,7 @@ export const TRANSLATIONS = {
     pack_name_p_celestial_normal: "天体包",
     pack_desc_p_celestial_normal: "3选1 星球牌",
     pack_name_p_standard_normal: "标准包",
-    pack_desc_p_standard_normal: "3选1 扑克牌 (可能含特效)",
+    pack_desc_p_standard_normal: "3选1 扑克牌",
     pack_name_p_buffoon_normal: "小丑包",
     pack_desc_p_buffoon_normal: "2选1 小丑牌",
 
@@ -240,7 +274,7 @@ export const TRANSLATIONS = {
     voucher_name_v_clearance: "清仓大甩卖",
     voucher_desc_v_clearance: "商店所有物品 75 折",
     voucher_name_v_hone: "磨刀石",
-    voucher_desc_v_hone: "箔金卡牌出现率翻倍 (视觉效果)",
+    voucher_desc_v_hone: "箔金卡牌出现率翻倍",
     voucher_name_v_grabber: "抓取者",
     voucher_desc_v_grabber: "每回合永久 +1 出牌次数",
     voucher_name_v_wasteful: "浪费者",
@@ -263,17 +297,47 @@ export const TRANSLATIONS = {
     select_blind: "SELECT BLIND",
     blind_name_Small: "Small Blind",
     blind_name_Big: "Big Blind",
+
+    // Boss Blinds
     blind_name_The_Wall: "The Wall",
     blind_name_The_Club: "The Club",
     blind_name_The_Goad: "The Goad",
     blind_name_The_Window: "The Window",
     blind_name_The_Head: "The Head",
+    blind_name_The_Needle: "The Needle",
+    blind_name_The_Water: "The Water",
+    blind_name_The_Manacle: "The Manacle",
+    blind_name_The_Eye: "The Eye",
+    blind_name_The_Mouth: "The Mouth",
+    blind_name_The_Plant: "The Plant",
+    blind_name_The_Serpent: "The Serpent",
+    blind_name_The_Pillar: "The Pillar",
+    blind_name_The_Psychic: "The Psychic",
+    blind_name_The_Tooth: "The Tooth",
+    blind_name_The_Mark: "The Mark",
+    blind_name_The_Flint: "The Flint",
+    blind_name_The_Arm: "The Arm",
+    blind_name_The_Ox: "The Ox",
 
     blind_desc_The_Wall: "Extra large blind (4x Score)",
     blind_desc_The_Club: "All Club cards are debuffed",
     blind_desc_The_Goad: "All Spade cards are debuffed",
     blind_desc_The_Window: "All Diamond cards are debuffed",
     blind_desc_The_Head: "All Heart cards are debuffed",
+    blind_desc_The_Needle: "Play only 1 hand",
+    blind_desc_The_Water: "Start with 0 discards",
+    blind_desc_The_Manacle: "-1 Hand Size",
+    blind_desc_The_Eye: "No repeat hand types",
+    blind_desc_The_Mouth: "Play only 1 hand type",
+    blind_desc_The_Plant: "All Face cards are debuffed",
+    blind_desc_The_Serpent: "Draw 3 cards after playing or discarding",
+    blind_desc_The_Pillar: "Cards played previously this ante are debuffed",
+    blind_desc_The_Psychic: "Must play 5 cards",
+    blind_desc_The_Tooth: "Lose $1 per card played",
+    blind_desc_The_Mark: "All face cards are drawn face down",
+    blind_desc_The_Flint: "Base Chips and Mult are halved",
+    blind_desc_The_Arm: "Decrease level of played poker hand",
+    blind_desc_The_Ox: "Playing your most played hand sets money to $0",
 
     select: "Select",
     skip: "Skip",
@@ -309,6 +373,9 @@ export const TRANSLATIONS = {
     select_target_1: "Select 1 card",
     confirm_use: "CONFIRM",
     cancel: "Cancel",
+    not_allowed_psychic: "Must play 5 cards!",
+    not_allowed_eye: "Cannot repeat hand type!",
+    not_allowed_mouth: "Must play same hand type!",
     
     // --- Game Stats ---
     round_score: "Round Score",
@@ -399,7 +466,7 @@ export const TRANSLATIONS = {
     hand_Royal_Flush: "Royal Flush",
     hand_desc_Royal_Flush: "A, K, Q, J, 10 Flush",
 
-    // --- Joker Names & Descriptions (Fallback to ZH keys mostly matching) ---
+    // --- Joker Names & Descriptions ---
     joker_name_j_joker: "Joker",
     joker_desc_j_joker: "+4 Mult",
     joker_name_j_greedy: "Greedy Joker",
@@ -503,7 +570,10 @@ export type Language = 'ZH' | 'EN';
 // 通用翻译函数，支持 id 参数替换
 export const t = (lang: Language, key: string, params?: Record<string, string | number>) => {
   const k = key as keyof typeof TRANSLATIONS['EN'];
-  let text = TRANSLATIONS[lang][k] || TRANSLATIONS['EN'][k] || key;
+  // 自动处理空格变下划线 (兼容 Boss Blind 的 The Wall -> The_Wall)
+  const safeKey = k.replace(/ /g, '_') as keyof typeof TRANSLATIONS['EN'];
+  
+  let text = TRANSLATIONS[lang][safeKey] || TRANSLATIONS['EN'][safeKey] || key;
   
   if (params) {
       Object.entries(params).forEach(([pkey, pval]) => {
