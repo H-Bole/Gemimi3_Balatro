@@ -70,6 +70,7 @@ export const TRANSLATIONS = {
     discards_left: "剩余弃牌",
     interest: "利息",
     total: "合计",
+    gold_cards: "黄金牌收益",
 
     // Settings
     master_volume: "主音量",
@@ -104,6 +105,9 @@ export const TRANSLATIONS = {
     tag_garbage: "下一次商店刷新免费",
     tag_investment: "获得 $15",
     tag_speed: "跳过盲注获得 $5",
+    
+    // Tips
+    tip_debuffed: "削弱",
   },
   EN: {
     // Common
@@ -175,6 +179,7 @@ export const TRANSLATIONS = {
     discards_left: "Discards Left",
     interest: "Interest",
     total: "Total",
+    gold_cards: "Gold Cards",
 
     // Settings
     master_volume: "Master Volume",
@@ -209,6 +214,9 @@ export const TRANSLATIONS = {
     tag_garbage: "Free rerolls next shop",
     tag_investment: "Gain $15",
     tag_speed: "Gain $5 per skipped blind",
+    
+    // Tips
+    tip_debuffed: "Debuffed",
   }
 };
 

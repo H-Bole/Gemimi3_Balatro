@@ -152,6 +152,7 @@ class AudioService {
   private volume: number = 0.5;
   private musicVolume: number = 0.5;
   private sequencer: BGMSequencer | null = null;
+  private pitchMod: number = 1.0; // Current pitch modifier for ramping
 
   constructor() {
   }
@@ -203,6 +204,14 @@ class AudioService {
 
   public stopBGM() {
       if (this.sequencer) this.sequencer.stop();
+  }
+
+  public resetPitch() {
+      this.pitchMod = 1.0;
+  }
+
+  public incrementPitch() {
+      this.pitchMod = Math.min(2.5, this.pitchMod + 0.1);
   }
 
   public playCoin() {
@@ -271,33 +280,44 @@ class AudioService {
     noise.start();
   }
 
+  // New generic blip sound with pitch control
+  public playBlip(type: 'chips' | 'mult' | 'fire') {
+      const ctx = this.getContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      const pitch = this.pitchMod;
+
+      if (type === 'chips') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(440 * pitch, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(880 * pitch, ctx.currentTime + 0.1);
+      } else if (type === 'mult') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(330 * pitch, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(660 * pitch, ctx.currentTime + 0.15);
+      } else {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(110 * pitch, ctx.currentTime);
+          osc.frequency.linearRampToValueAtTime(220 * pitch, ctx.currentTime + 0.2);
+      }
+
+      gain.gain.setValueAtTime(0.1 * this.volume, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      
+      osc.connect(gain);
+      gain.connect(this.gainNode!);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.15);
+  }
+
+  // Backward compatibility wrappers
   public playChipAdd() {
-    const ctx = this.getContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(800, ctx.currentTime);
-    gain.gain.setValueAtTime(0.1 * this.volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    osc.connect(gain);
-    gain.connect(this.gainNode!);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.1);
+    this.playBlip('chips');
   }
 
   public playMultAdd() {
-    const ctx = this.getContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(300, ctx.currentTime);
-    osc.frequency.linearRampToValueAtTime(600, ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.1 * this.volume, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(this.gainNode!);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
+    this.playBlip('mult');
   }
 
   public playScoreTotal() {

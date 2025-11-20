@@ -2,35 +2,41 @@
 import { HandType, Joker, Rank, Suit, Blind, BossAbility, Consumable, HandLevel, Tag, Voucher, Pack } from "./types";
 
 // --- 游戏基础常量 (Game Constants) ---
-export const STARTING_HAND_SIZE = 8; 
-export const MAX_HAND_SIZE = 8;      
-export const STARTING_HANDS = 4;     
-export const STARTING_DISCARDS = 3;  
-export const STARTING_MONEY = 4;     
-export const BASE_ANTE_SCORE = 300;  
-export const MAX_JOKERS_DEFAULT = 5; // 默认小丑槽位，可通过 Negative 版本增加
-export const MAX_CONSUMABLES = 2;
-export const BASE_REROLL_COST = 5;
+export const STARTING_HAND_SIZE = 8; // 初始手牌上限
+export const MAX_HAND_SIZE = 8;      // 最大手牌上限 (UI限制)
+export const STARTING_HANDS = 4;     // 初始出牌次数
+export const STARTING_DISCARDS = 3;  // 初始弃牌次数
+export const STARTING_MONEY = 4;     // 初始金钱
+export const BASE_ANTE_SCORE = 300;  // 底注1的基础分
+export const MAX_JOKERS_DEFAULT = 5; // 默认小丑槽位
+export const MAX_CONSUMABLES = 2;    // 消耗牌槽位
+export const BASE_REROLL_COST = 5;   // 基础刷新价格
+
+// --- 经济系统常量 (Economy) ---
+export const BASE_INTEREST_CAP = 5;  // 基础利息上限 (每$5得$1, 最多得$5)
+export const INTEREST_RATE = 5;      // 利率 ($5 -> $1)
 
 // --- 版本与增强数值 (Editions & Enhancements) ---
+// 定义了卡牌不同版本的数值加成
 export const EDITION_VALUES = {
-    Foil: { chips: 50, mult: 0, x_mult: 1 },
-    Holographic: { chips: 0, mult: 10, x_mult: 1 },
-    Polychrome: { chips: 0, mult: 0, x_mult: 1.5 },
-    Negative: { chips: 0, mult: 0, x_mult: 1, extraSlot: 1 }, // Negative 提供额外槽位
+    Foil: { chips: 50, mult: 0, x_mult: 1 },       // 箔金: +50 筹码
+    Holographic: { chips: 0, mult: 10, x_mult: 1 },// 镭射: +10 倍率
+    Polychrome: { chips: 0, mult: 0, x_mult: 1.5 },// 多彩: X1.5 倍率
+    Negative: { chips: 0, mult: 0, x_mult: 1, extraSlot: 1 }, // 底片: +1 小丑槽
 };
 
+// 定义了卡牌增强功能的数值加成
 export const ENHANCEMENT_VALUES = {
-    Bonus: { chips: 30, mult: 0 },
-    Mult: { chips: 0, mult: 4 },
-    Glass: { x_mult: 2, breakChance: 0.25 }, // 1/4 几率破碎
-    Steel: { x_mult: 1.5 }, // 在手牌时生效
-    Stone: { chips: 50 }, // 石头牌+50筹码，无点数花色
-    Gold: { money: 3 }, // 结算时 +$3
-    Lucky: { moneyChance: 0.2, money: 20, multChance: 0.2, mult: 20 }
+    Bonus: { chips: 30, mult: 0 },                 // 奖励牌
+    Mult: { chips: 0, mult: 4 },                   // 倍率牌
+    Glass: { x_mult: 2, breakChance: 0.25 },       // 玻璃牌 (X2, 1/4碎裂)
+    Steel: { x_mult: 1.5 },                        // 钢铁牌 (手持 X1.5)
+    Stone: { chips: 50 },                          // 石头牌
+    Gold: { money: 3 },                            // 黄金牌 (结算+$3)
+    Lucky: { moneyChance: 0.2, money: 20, multChance: 0.2, mult: 20 } // 幸运牌
 };
 
-// --- 补充包 (Booster Packs) ---
+// --- 补充包定义 (Booster Packs) ---
 export const PACKS: Pack[] = [
     { id: 'p_arcana_normal', name: 'Arcana Pack', nameZh: '奥秘包', type: 'Arcana', cost: 4, size: 3, choices: 1, description: 'Choose 1 of 3 Tarot cards', descriptionZh: '3选1 塔罗牌' },
     { id: 'p_celestial_normal', name: 'Celestial Pack', nameZh: '天体包', type: 'Celestial', cost: 4, size: 3, choices: 1, description: 'Choose 1 of 3 Planet cards', descriptionZh: '3选1 星球牌' },
@@ -38,7 +44,7 @@ export const PACKS: Pack[] = [
     { id: 'p_buffoon_normal', name: 'Buffoon Pack', nameZh: '小丑包', type: 'Buffoon', cost: 6, size: 2, choices: 1, description: 'Choose 1 of 2 Joker cards', descriptionZh: '2选1 小丑牌' },
 ];
 
-// --- 盲注定义 ---
+// --- 盲注定义 (Blinds) ---
 export const BLIND_DEFINITIONS: Record<string, Partial<Blind>> = {
     'Small': { name: 'Small Blind', nameZh: '小盲注', type: 'Small', scoreBase: 1, reward: 3 },
     'Big': { name: 'Big Blind', nameZh: '大盲注', type: 'Big', scoreBase: 1.5, reward: 4 },
@@ -69,10 +75,11 @@ export const VOUCHERS: Voucher[] = [
     { id: 'v_hone', name: 'Hone', nameZh: '磨刀石', description: 'Foil cards appear 2x more often', descriptionZh: '箔金卡牌出现率翻倍 (视觉效果)', cost: 10, effectId: 'hone' },
     { id: 'v_grabber', name: 'Grabber', nameZh: '抓取者', description: 'Permanently gain +1 Hand per round', descriptionZh: '每回合永久 +1 出牌次数', cost: 10, effectId: 'grabber' },
     { id: 'v_wasteful', name: 'Wasteful', nameZh: '浪费者', description: 'Permanently gain +1 Discard per round', descriptionZh: '每回合永久 +1 弃牌次数', cost: 10, effectId: 'wasteful' },
+    { id: 'v_seed', name: 'Seed Money', nameZh: '种子资金', description: 'Raise interest cap to $10', descriptionZh: '利息上限提升至 $10', cost: 10, effectId: 'seed_money' },
 ];
 
 
-// --- 牌型基础数值与升级规则 ---
+// --- 牌型基础数值与升级规则 (Hand Scaling) ---
 export const HAND_SCALING: Record<HandType, { baseChips: number; baseMult: number; levelChips: number; levelMult: number; label: string; labelZh: string; description: string; descriptionZh: string }> = {
   [HandType.HighCard]: { 
       baseChips: 5, baseMult: 1, levelChips: 10, levelMult: 1,
@@ -142,7 +149,7 @@ export const TAROT_CARDS: Consumable[] = [
     { id: 't_devil', name: 'The Devil', nameZh: '恶魔', description: 'Enhance 1 card to Gold', descriptionZh: '将1张牌增强为黄金牌 (结算+$3)', type: 'Tarot', cost: 3, effectId: 'enhance_gold' },
 ];
 
-// --- 小丑牌池 ---
+// --- 小丑牌池 (Joker Pool) ---
 export const AVAILABLE_JOKERS: Joker[] = [
   {
     id: 'j_joker',
@@ -155,7 +162,7 @@ export const AVAILABLE_JOKERS: Joker[] = [
     name: 'Greedy Joker', nameZh: '贪婪小丑',
     description: '+4 Mult if played card is Diamond', descriptionZh: '打出方块牌时 +4 倍率',
     rarity: 'Common', cost: 4, type: 'flat_mult', value: 4, edition: null,
-    trigger: 'played',
+    triggerType: 'card_played',
     condition: (_, cards) => cards.some(c => c.suit === Suit.Diamonds)
   },
   {
@@ -163,7 +170,7 @@ export const AVAILABLE_JOKERS: Joker[] = [
     name: 'Lusty Joker', nameZh: '好色小丑',
     description: '+4 Mult if played card is Heart', descriptionZh: '打出红桃牌时 +4 倍率',
     rarity: 'Common', cost: 4, type: 'flat_mult', value: 4, edition: null,
-    trigger: 'played',
+    triggerType: 'card_played',
     condition: (_, cards) => cards.some(c => c.suit === Suit.Hearts)
   },
   {
@@ -171,7 +178,7 @@ export const AVAILABLE_JOKERS: Joker[] = [
     name: 'Wrathful Joker', nameZh: '暴怒小丑',
     description: '+4 Mult if played card is Spade', descriptionZh: '打出黑桃牌时 +4 倍率',
     rarity: 'Common', cost: 4, type: 'flat_mult', value: 4, edition: null,
-    trigger: 'played',
+    triggerType: 'card_played',
     condition: (_, cards) => cards.some(c => c.suit === Suit.Spades)
   },
   {
@@ -179,7 +186,7 @@ export const AVAILABLE_JOKERS: Joker[] = [
     name: 'Gluttonous Joker', nameZh: '暴食小丑',
     description: '+4 Mult if played card is Club', descriptionZh: '打出梅花牌时 +4 倍率',
     rarity: 'Common', cost: 4, type: 'flat_mult', value: 4, edition: null,
-    trigger: 'played',
+    triggerType: 'card_played',
     condition: (_, cards) => cards.some(c => c.suit === Suit.Clubs)
   },
   {
@@ -187,6 +194,7 @@ export const AVAILABLE_JOKERS: Joker[] = [
     name: 'Droll Joker', nameZh: '滑稽小丑',
     description: '+10 Mult if played hand contains a Flush', descriptionZh: '如果打出的牌包含同花，+10 倍率',
     rarity: 'Uncommon', cost: 6, type: 'flat_mult', value: 10, edition: null,
+    triggerType: 'independent',
     condition: (handType) => handType === HandType.Flush || handType === HandType.StraightFlush
   },
   {
@@ -194,69 +202,76 @@ export const AVAILABLE_JOKERS: Joker[] = [
     name: 'Half Joker', nameZh: '半个小丑',
     description: '+20 Mult if played hand has 3 or fewer cards', descriptionZh: '如果打出的牌不超过3张，+20 倍率',
     rarity: 'Common', cost: 4, type: 'flat_mult', value: 20, edition: null,
+    triggerType: 'independent',
     condition: (_, cards) => cards.length <= 3
   },
   {
     id: 'j_stencil',
     name: 'Joker Stencil', nameZh: '小丑模版',
     description: 'X1.5 Mult for each empty Joker slot', descriptionZh: '每个空的小丑槽位提供 X1.5 倍率',
-    rarity: 'Uncommon', cost: 8, type: 'x_mult', value: 1.5, edition: null
+    rarity: 'Uncommon', cost: 8, type: 'x_mult', value: 1.5, edition: null,
+    triggerType: 'independent'
   },
   {
     id: 'j_banner',
     name: 'Banner', nameZh: '旗帜',
     description: '+40 Chips for each remaining Discard', descriptionZh: '每次剩余的弃牌机会提供 +40 筹码',
-    rarity: 'Common', cost: 5, type: 'flat_chips', value: 40, edition: null
+    rarity: 'Common', cost: 5, type: 'flat_chips', value: 40, edition: null,
+    triggerType: 'independent'
   },
   {
     id: 'j_abstract',
     name: 'Abstract Joker', nameZh: '抽象小丑',
     description: '+3 Mult for each Joker card', descriptionZh: '每张小丑牌提供 +3 倍率',
-    rarity: 'Common', cost: 4, type: 'flat_mult', value: 3, edition: null
+    rarity: 'Common', cost: 4, type: 'flat_mult', value: 3, edition: null,
+    triggerType: 'independent'
   },
   {
     id: 'j_bull',
     name: 'Bull', nameZh: '公牛',
     description: '+2 Chips for each $1 you have', descriptionZh: '每拥有 $1 提供 +2 筹码',
-    rarity: 'Uncommon', cost: 6, type: 'flat_chips', value: 2, edition: null
+    rarity: 'Uncommon', cost: 6, type: 'flat_chips', value: 2, edition: null,
+    triggerType: 'independent'
   },
   {
     id: 'j_even_steven',
     name: 'Even Steven', nameZh: '偶数史蒂文',
     description: '+4 Mult for each even ranked card played', descriptionZh: '打出的每一张偶数点数牌提供 +4 倍率',
     rarity: 'Common', cost: 4, type: 'flat_mult', value: 4, edition: null,
-    trigger: 'played'
+    triggerType: 'card_played' // 每张卡触发一次
   },
   {
     id: 'j_odd_todd',
     name: 'Odd Todd', nameZh: '奇数托德',
     description: '+30 Chips for each odd ranked card played', descriptionZh: '打出的每一张奇数点数牌提供 +30 筹码',
     rarity: 'Common', cost: 4, type: 'flat_chips', value: 30, edition: null,
-    trigger: 'played'
+    triggerType: 'card_played'
   },
   {
     id: 'j_scholar',
     name: 'Scholar', nameZh: '学者',
     description: 'Played Aces give +20 Chips and +4 Mult', descriptionZh: '打出的每张 A 提供 +4 倍率 和 +20 筹码',
     rarity: 'Common', cost: 4, type: 'utility', value: 0, edition: null,
-    trigger: 'played'
+    triggerType: 'card_played'
   },
   {
     id: 'j_gros_michel',
     name: 'Gros Michel', nameZh: '格罗斯·米歇尔',
     description: '+15 Mult. 1 in 4 chance to destroy at end of round', descriptionZh: '+15 倍率，回合结束时有 1/4 几率被摧毁',
     rarity: 'Common', cost: 5, type: 'flat_mult', value: 15, edition: null,
-    probability: 4 
+    probability: 4,
+    triggerType: 'independent'
   },
   {
     id: 'j_ice_cream',
     name: 'Ice Cream', nameZh: '冰淇淋',
     description: '+100 Chips. -5 Chips for every hand played', descriptionZh: '+100 筹码，每打出一手牌 -5 筹码',
-    rarity: 'Uncommon', cost: 5, type: 'flat_chips', value: 100, edition: null
+    rarity: 'Uncommon', cost: 5, type: 'flat_chips', value: 100, edition: null,
+    triggerType: 'independent'
   }
 ];
 
-// UI 辅助常量
+// --- UI 辅助常量 ---
 export const SUIT_COLORS = {
   [Suit.Hearts]: 'text-[#FE5F55]',    
   [Suit.Diamonds]: 'text-[#FE5F55]',  

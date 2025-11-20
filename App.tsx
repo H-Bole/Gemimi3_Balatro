@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { CardComponent } from './components/CardComponent';
 import { JokerComponent } from './components/JokerComponent';
 import { ConsumableComponent } from './components/ConsumableComponent';
 import { SettingsModal } from './components/SettingsModal';
 import { RunInfoModal } from './components/RunInfoModal';
-import { GameState, CardData, HandResult, GameSettings, Joker, Blind, Consumable, HandLevel, HandType, BossAbility, CashOutItem, Tag, Voucher, Pack, Edition, Enhancement, ScoreReport } from './types';
-import { AVAILABLE_JOKERS, HAND_SCALING, MAX_HAND_SIZE, STARTING_DISCARDS, STARTING_HANDS, STARTING_HAND_SIZE, STARTING_MONEY, BOSS_BLINDS, MAX_JOKERS_DEFAULT, MAX_CONSUMABLES, TAGS, VOUCHERS, BASE_REROLL_COST, TAROT_CARDS, PLANET_CARDS, PACKS } from './constants';
+import { ScoreDisplay } from './components/ScoreDisplay';
+import { MainMenu } from './components/MainMenu';
+import { GameState, CardData, HandResult, GameSettings, Joker, Blind, BossAbility, CashOutItem, Tag, Voucher, Pack, Edition, Enhancement, ScoreReport, ScoringEvent, Consumable } from './types';
+import { AVAILABLE_JOKERS, HAND_SCALING, MAX_HAND_SIZE, STARTING_DISCARDS, STARTING_HANDS, STARTING_HAND_SIZE, STARTING_MONEY, BOSS_BLINDS, MAX_JOKERS_DEFAULT, MAX_CONSUMABLES, TAGS, VOUCHERS, BASE_REROLL_COST, TAROT_CARDS, PLANET_CARDS, PACKS, BASE_INTEREST_CAP, INTEREST_RATE } from './constants';
 import { createDeck, evaluateHand, calculateScore, sortHand, generateBlinds, getBlindScore, generateShopItems, createCard } from './services/pokerEngine';
 import { audio } from './services/audio';
 import { t } from './i18n';
@@ -22,11 +23,11 @@ const DEFAULT_SETTINGS: GameSettings = {
 };
 
 // 初始牌型等级
-const INITIAL_HAND_LEVELS: Record<HandType, HandLevel> = Object.keys(HAND_SCALING).reduce((acc, key) => {
-    const k = key as HandType;
+const INITIAL_HAND_LEVELS: Record<string, any> = Object.keys(HAND_SCALING).reduce((acc, key) => {
+    const k = key as any;
     acc[k] = { level: 1, baseChips: HAND_SCALING[k].baseChips, baseMult: HAND_SCALING[k].baseMult };
     return acc;
-}, {} as Record<HandType, HandLevel>);
+}, {} as any);
 
 const INITIAL_STATE: GameState = {
   deck: [],
@@ -52,15 +53,19 @@ const INITIAL_STATE: GameState = {
   rerollCost: BASE_REROLL_COST,
   activeTags: [],
   redeemedVouchers: [],
-  settings: DEFAULT_SETTINGS
+  settings: DEFAULT_SETTINGS,
+  activeCardId: null // 用于计分动画高亮
 };
 
 export default function App() {
   const [game, setGame] = useState<GameState>(INITIAL_STATE);
   const [animating, setAnimating] = useState(false);
   const [handPreview, setHandPreview] = useState<HandResult | null>(null);
-  const [scoreDetails, setScoreDetails] = useState<ScoreReport | null>(null);
+  
+  // 实时计分状态 (用于中间显示)
+  const [liveScore, setLiveScore] = useState({ chips: 0, mult: 0, total: 0 });
   const [displayRoundScore, setDisplayRoundScore] = useState(0);
+  
   const [showSettings, setShowSettings] = useState(false);
   const [showRunInfo, setShowRunInfo] = useState(false);
   const [scale, setScale] = useState(1);
@@ -124,7 +129,7 @@ export default function App() {
       if (game.roundScore === 0 && game.currentScore === 0) setDisplayRoundScore(0);
   }, [game.roundScore, game.currentScore]);
 
-  // --- 结算动画 (Cash Out) ---
+  // --- 结算动画 (Cash Out Animation) ---
   useEffect(() => {
       if (game.status === 'CASHOUT' && game.cashOutReport) {
           const { items, currentStep } = game.cashOutReport;
@@ -153,7 +158,7 @@ export default function App() {
       }
   }, [game.status, game.cashOutReport?.currentStep]);
 
-  // --- 发牌动画辅助 (Dealing Helper) ---
+  // --- 发牌动画辅助 (Dealing Animation Helper) ---
   const dealCards = (cards: CardData[], startIndex = 0) => {
       return cards.map((c, i) => ({
           ...c,
@@ -176,6 +181,7 @@ export default function App() {
 
   // --- 游戏流程控制 (Game Flow Control) ---
 
+  // 开始新游戏
   const startGame = () => {
     audio.playClick();
     audio.startBGM();
@@ -188,12 +194,14 @@ export default function App() {
     });
   };
 
+  // 跳过盲注 (Skip Blind)
   const skipBlind = (blind: Blind) => {
       audio.playClick();
       const randomTag = TAGS[Math.floor(Math.random() * TAGS.length)];
       const newTag = { ...randomTag, id: randomTag.id + Date.now() };
       setGame(prev => {
           let newMoney = prev.money;
+          // 部分Tag直接给钱
           if (newTag.id.includes('tag_speed')) newMoney += 5;
           if (newTag.id.includes('tag_investment')) newMoney += 15;
           return {
@@ -209,9 +217,12 @@ export default function App() {
       }, 500);
   };
 
+  // 选择盲注并开始回合
   const selectBlind = (blind: Blind) => {
       audio.playClick();
       const newDeck = createDeck();
+      
+      // 计算手牌上限
       let handSize = STARTING_HAND_SIZE;
       if (game.redeemedVouchers.includes('v_grabber')) handSize += 1; 
 
@@ -222,8 +233,12 @@ export default function App() {
           initialHand = applyBossDebuffs(initialHand, blind.bossAbility);
       }
       const target = getBlindScore(blind, game.ante);
+      
       let discards = STARTING_DISCARDS;
       if (game.redeemedVouchers.includes('v_wasteful')) discards += 1;
+      
+      let handsCount = STARTING_HANDS;
+      if (game.redeemedVouchers.includes('v_grabber')) handsCount += 1;
 
       setGame(prev => ({
           ...prev,
@@ -234,7 +249,7 @@ export default function App() {
           hand: dealCards(sortHand(initialHand, prev.settings.sortBy)),
           discardPile: [],
           selectedCardIds: [], 
-          handsLeft: STARTING_HANDS + (game.redeemedVouchers.includes('v_grabber') ? 1 : 0),
+          handsLeft: handsCount,
           discardsLeft: discards,
           currentScore: 0,
           roundScore: 0
@@ -258,6 +273,7 @@ export default function App() {
   useEffect(() => {
     if (game.status !== 'PLAYING') return;
     const selectedCards = game.hand.filter(c => game.selectedCardIds.includes(c.id));
+    // @ts-ignore
     const result = evaluateHand(selectedCards, game.handLevels);
     setHandPreview(result);
   }, [game.selectedCardIds, game.hand, game.status, game.handLevels]);
@@ -265,7 +281,6 @@ export default function App() {
   const toggleCard = (id: string) => {
     audio.playCardSelect();
     
-    // 1. 塔罗牌选择模式
     if (game.selectionState && game.selectionState.mode === 'TAROT') {
         setGame(prev => {
             const currentSelected = prev.selectedCardIds;
@@ -282,7 +297,6 @@ export default function App() {
         return;
     }
 
-    // 2. 正常出牌模式
     if (game.status === 'PLAYING' && !animating) {
         setGame(prev => {
           const isSelected = prev.selectedCardIds.includes(id);
@@ -306,6 +320,16 @@ export default function App() {
           newHand.splice(dropIndex, 0, movedCard);
           audio.playCardSelect();
           return { ...prev, hand: newHand };
+      });
+  };
+
+  const handleJokerDrop = (dragIndex: number, dropIndex: number) => {
+      setGame(prev => {
+          const newJokers = [...prev.jokers];
+          const [movedJoker] = newJokers.splice(dragIndex, 1);
+          newJokers.splice(dropIndex, 0, movedJoker);
+          audio.playCardSelect(); 
+          return { ...prev, jokers: newJokers };
       });
   };
 
@@ -340,8 +364,7 @@ export default function App() {
         let drawnCards: CardData[] = [];
         let remainingDeck = [...prev.deck];
         let handSize = MAX_HAND_SIZE;
-        if (prev.redeemedVouchers.includes('v_grabber')) handSize += 1;
-
+        
         const needToDraw = handSize - kept.length;
         if (needToDraw > 0) {
             drawnCards = remainingDeck.slice(0, needToDraw);
@@ -365,52 +388,145 @@ export default function App() {
     }, 600); 
   };
 
-  const playHand = () => {
+  // --- 异步计分序列引擎 (Async Scoring Engine) ---
+  const runScoringSequence = async (scoreReport: ScoreReport) => {
+      // 初始化
+      audio.resetPitch();
+      
+      // 注意：我们必须使用本地变量累计，然后同步到状态以显示
+      // pokerEngine 保证第一个事件是 hand_base，包含了初始的 Chips 和 Mult
+      let currentChips = 0;
+      let currentMult = 0;
+      
+      // 遍历事件轴
+      for (const event of scoreReport.timeline) {
+          // 0. 设置初始值
+          if (event.type === 'hand_base') {
+              currentChips = event.chipsAdded || 0;
+              currentMult = event.multAdded || 0;
+              setLiveScore({ chips: currentChips, mult: currentMult, total: 0 });
+              // 基础分稍微停顿一下，让玩家看清基础牌型分
+              await new Promise(r => setTimeout(r, 500));
+              continue;
+          }
+
+          // 1. 激活来源 (高亮 Card 或 Joker)
+          if (event.sourceId && event.sourceId !== 'base') {
+              setGame(prev => ({ ...prev, activeCardId: event.sourceId }));
+              // 稍微等待高亮动画开始
+              await new Promise(r => setTimeout(r, 150));
+          }
+
+          // 2. 触发视觉弹出 (Popup) 和 音效
+          if (event.message && event.sourceId !== 'base') {
+              // 弹出文字
+              setGame(prev => ({
+                  ...prev,
+                  triggerState: {
+                      id: event.sourceId,
+                      text: event.message!,
+                      type: event.x_mult ? 'x_mult' : event.multAdded ? 'mult' : 'chips'
+                  }
+              }));
+
+              // 播放音效
+              if (event.x_mult) {
+                 audio.playBlip('fire');
+                 audio.incrementPitch();
+              } else if (event.multAdded) {
+                 audio.playBlip('mult');
+                 audio.incrementPitch();
+              } else if (event.chipsAdded) {
+                 audio.playBlip('chips');
+                 audio.incrementPitch();
+              } else if (event.type === 'glass_break') {
+                 audio.playError();
+              }
+          }
+
+          // 3. 执行数值累加
+          if (event.chipsAdded) currentChips += event.chipsAdded;
+          if (event.multAdded) currentMult += event.multAdded;
+          if (event.x_mult) currentMult *= event.x_mult;
+          
+          // 4. 更新 UI 显示
+          setLiveScore({
+              chips: currentChips,
+              mult: currentMult,
+              total: 0 // 总分此时不显示，只显示分量
+          });
+
+          // 5. 动态停顿节奏
+          // 重复触发稍快，X Mult 稍慢以示重磅
+          let delayMs = 350; 
+          if (event.x_mult) delayMs = 600;
+          if (event.isRetrigger) delayMs = 250;
+          
+          await new Promise(r => setTimeout(r, delayMs));
+
+          // 6. 清除高亮，准备下一个
+          setGame(prev => ({ ...prev, activeCardId: null }));
+      }
+      
+      // 7. 所有事件结束，显示最终总分 (火焰特效)
+      audio.playScoreTotal();
+      setLiveScore(prev => ({ ...prev, total: scoreReport.total }));
+      
+      // 关键修改：这里增加更长的停顿，让玩家看清最终总分
+      await new Promise(r => setTimeout(r, 1500));
+      
+      return true;
+  };
+
+  const playHand = async () => {
     if (game.handsLeft <= 0 || game.selectedCardIds.length === 0 || animating || !handPreview) {
         audio.playError();
         return;
     }
     setAnimating(true);
     audio.playClick();
+    
+    // 将选中的牌设为 scoring 状态
     setGame(prev => ({
         ...prev,
         hand: prev.hand.map(c => prev.selectedCardIds.includes(c.id) ? { ...c, animationState: 'scoring' } : c)
     }));
     
     const selectedCards = game.hand.filter(c => game.selectedCardIds.includes(c.id));
+    // @ts-ignore
     const result = evaluateHand(selectedCards, game.handLevels);
+    
+    // 1. 计算完整时间轴
     const scoreCalc = calculateScore(result, game.jokers, game.hand, { 
         money: game.money, 
         discardsLeft: game.discardsLeft, 
         jokerCount: game.jokers.length 
     });
 
-    // 计分动画序列
-    setTimeout(() => { audio.playChipAdd(); setScoreDetails({ ...scoreCalc, chips: scoreCalc.chips, mult: 0, total: 0 }); }, 600);
-    setTimeout(() => { audio.playMultAdd(); setScoreDetails({ ...scoreCalc, chips: scoreCalc.chips, mult: scoreCalc.mult, total: 0 }); }, 1200);
-    setTimeout(() => { audio.playScoreTotal(); setScoreDetails(scoreCalc); }, 1800);
+    // 2. 进入 Scoring 视图
+    setGame(prev => ({ ...prev, status: 'SCORING' }));
 
-    setTimeout(() => {
-      setGame(prev => {
+    // 3. 播放异步计分流程
+    await runScoringSequence(scoreCalc);
+
+    // 4. 流程结束，处理清理
+    setGame(prev => {
         const newTotalScore = prev.currentScore + scoreCalc.total;
+        const gainedMoney = scoreCalc.goldGained;
         
-        // 处理玻璃牌破碎 (Glass Break)
         const brokenIds = scoreCalc.destroyedCards;
         const playedIds = prev.selectedCardIds;
-        let deckToUpdate = [...prev.deck]; // 通常牌已抽出，deck不管
         let kept = prev.hand.filter(c => !playedIds.includes(c.id));
         const playedCards = prev.hand.filter(c => playedIds.includes(c.id));
         
-        // 将未破碎的牌移入弃牌堆，破碎的牌直接移除
+        // 只有没碎的牌才进弃牌堆
         const cardsToDiscard = playedCards.filter(c => !brokenIds.includes(c.id));
         
-        if (brokenIds.length > 0) audio.playError(); // 破碎音效
-
+        // 抽牌
         let drawnCards: CardData[] = [];
         let remainingDeck = [...prev.deck];
         let handSize = MAX_HAND_SIZE;
-        if (prev.redeemedVouchers.includes('v_grabber')) handSize += 1;
-
+        
         const needToDraw = handSize - kept.length;
         if (needToDraw > 0) {
             drawnCards = remainingDeck.slice(0, needToDraw);
@@ -422,73 +538,86 @@ export default function App() {
         const animatedDrawn = dealCards(drawnCards);
         const newHand = sortHand([...kept, ...animatedDrawn], prev.settings.sortBy);
         
-        // 更新小丑状态 (Gros Michel/Ice Cream)
+        // Joker 销毁逻辑
         let newJokers = [...prev.jokers];
         newJokers = newJokers.map(j => j.id === 'j_ice_cream' ? { ...j, value: Math.max(0, j.value - 5) } : j);
         const hasGrosMichel = newJokers.find(j => j.id === 'j_gros_michel');
-        if (hasGrosMichel && Math.random() < 0.25) {
+        if (hasGrosMichel && Math.random() < (1 / (hasGrosMichel.probability || 4))) {
              newJokers = newJokers.filter(j => j.id !== 'j_gros_michel'); 
         }
         
         const isWin = newTotalScore >= prev.targetScore;
         const isLoss = !isWin && prev.handsLeft - 1 <= 0;
 
+        // 清除 trigger 状态
+        const cleanState = { 
+             ...prev, 
+             triggerState: null,
+             activeCardId: null,
+             money: prev.money + gainedMoney, 
+             currentScore: newTotalScore, 
+             roundScore: scoreCalc.total 
+        };
+
         if (isWin) {
-            return { ...prev, jokers: newJokers, currentScore: newTotalScore, roundScore: scoreCalc.total, status: 'VICTORY' };
+            return { ...cleanState, jokers: newJokers, status: 'VICTORY' };
         }
         if (isLoss) {
-             return { ...prev, status: 'GAME_OVER' };
+             return { ...cleanState, status: 'GAME_OVER' };
         }
+        
         return {
-          ...prev,
+          ...cleanState,
           hand: newHand,
           jokers: newJokers,
           discardPile: [...prev.discardPile, ...cardsToDiscard],
           deck: remainingDeck,
           selectedCardIds: [],
           handsLeft: prev.handsLeft - 1,
-          currentScore: newTotalScore,
-          roundScore: scoreCalc.total
+          status: 'PLAYING' // 回到打牌状态
         };
-      });
-      setAnimating(false);
-      setScoreDetails(null);
+    });
+    
+    setAnimating(false);
+    // 计分板消失后清空临时分数
+    setLiveScore({ chips: 0, mult: 0, total: 0 });
 
-      if (game.currentScore + scoreCalc.total >= game.targetScore) {
-         setTimeout(() => startCashOutSequence(), 1500);
-      }
-    }, 3000);
+    // 如果赢了，延迟跳到结算
+    if (game.currentScore + scoreCalc.total >= game.targetScore) {
+       setTimeout(() => startCashOutSequence(), 1000);
+    }
   };
 
   const startCashOutSequence = () => {
       setGame(prev => {
           const items: CashOutItem[] = [];
           let total = 0;
+          
           if (prev.handsLeft > 0) {
               items.push({ label: 'hands_left', amount: prev.handsLeft });
               total += prev.handsLeft;
           }
-          if (prev.discardsLeft > 0) {
-              items.push({ label: 'discards_left', amount: prev.discardsLeft });
-              total += prev.discardsLeft;
-          }
-          const interest = Math.min(5, Math.floor(prev.money / 5));
+          
+          let interestCap = BASE_INTEREST_CAP;
+          if (prev.redeemedVouchers.includes('v_seed')) interestCap = 10;
+
+          const interest = Math.min(interestCap, Math.floor(prev.money / INTEREST_RATE));
+          
           if (interest > 0) {
               items.push({ label: 'interest', amount: interest });
               total += interest;
           }
+          
           const reward = prev.currentBlind?.reward || 3;
           items.push({ label: 'blind_reward', amount: reward });
           total += reward;
           
-          // 黄金牌结算
           let goldMoney = 0;
-          // 需要遍历手牌中的黄金牌
           prev.hand.forEach(c => {
               if (c.enhancement === 'Gold') goldMoney += 3;
           });
           if (goldMoney > 0) {
-              items.push({ label: 'Gold Cards', amount: goldMoney });
+              items.push({ label: 'gold_cards', amount: goldMoney });
               total += goldMoney;
           }
 
@@ -504,6 +633,7 @@ export default function App() {
       audio.playScoreTotal();
       setGame(prev => {
           let shopItems = generateShopItems();
+          
           const couponTagIdx = prev.activeTags.findIndex(t => t.id.includes('tag_coupon'));
           if (couponTagIdx !== -1) {
               shopItems = shopItems.map(i => ({ ...i, cost: 0 }));
@@ -511,8 +641,10 @@ export default function App() {
               newTags.splice(couponTagIdx, 1);
               prev.activeTags = newTags;
           }
+          
           const randomVoucher = VOUCHERS[Math.floor(Math.random() * VOUCHERS.length)];
           const voucher = { ...randomVoucher, id: randomVoucher.id + Date.now() };
+          
           return {
               ...prev,
               status: 'SHOP',
@@ -540,7 +672,7 @@ export default function App() {
           ...prev,
           money: prev.money - prev.rerollCost,
           shopItems: generateShopItems(),
-          rerollCost: prev.rerollCost + 1 // 价格递增逻辑
+          rerollCost: prev.rerollCost + 1 
       }));
   };
 
@@ -550,6 +682,7 @@ export default function App() {
           let nextUpcoming = [...prev.upcomingBlinds];
           let nextAnte = prev.ante;
           if (prev.currentBlind) nextUpcoming = nextUpcoming.filter(b => b.id !== prev.currentBlind?.id);
+          
           if (nextUpcoming.length === 0) {
               nextAnte += 1;
               nextUpcoming = generateBlinds(nextAnte);
@@ -564,12 +697,10 @@ export default function App() {
       });
   };
 
-  // 购买逻辑 (Buy Item)
   const buyItem = (item: Joker | Consumable | Voucher | Pack) => {
       if (game.money >= item.cost) {
           audio.playClick();
           
-          // 1. 购买优惠券
           if ('effectId' in item && !('type' in item)) { 
              const v = item as Voucher;
              setGame(prev => ({
@@ -581,10 +712,8 @@ export default function App() {
              return;
           }
 
-          // 2. 购买小丑牌
           if ('rarity' in item) {
               let maxJokers = MAX_JOKERS_DEFAULT;
-              // 检查 Negative Joker 增加的槽位
               game.jokers.forEach(j => { if (j.edition === 'Negative') maxJokers++; });
               
               if (game.jokers.length < maxJokers) {
@@ -598,7 +727,6 @@ export default function App() {
                   audio.playError();
               }
           } 
-          // 3. 购买补充包 -> 进入开包模式
           else if ('size' in item) {
              openPack(item as Pack);
              setGame(prev => ({
@@ -607,7 +735,6 @@ export default function App() {
                  shopItems: prev.shopItems.filter(i => i.id !== item.id)
              }));
           } 
-          // 4. 购买消耗牌
           else {
               if (game.consumables.length < MAX_CONSUMABLES) {
                   setGame(prev => ({
@@ -625,14 +752,12 @@ export default function App() {
       }
   };
 
-  // 开包逻辑 (Open Pack)
   const openPack = (pack: Pack) => {
       let generatedCards: (Joker | Consumable | CardData)[] = [];
       
       if (pack.type === 'Standard') {
           const deck = createDeck();
           for(let i=0; i<pack.size; i++) {
-              // 生成标准扑克牌，可能带有版本/增强
               let card = deck[Math.floor(Math.random() * deck.length)];
               if (Math.random() > 0.7) {
                   const enh = ['Bonus', 'Mult', 'Wild', 'Glass', 'Steel', 'Stone', 'Gold', 'Lucky'][Math.floor(Math.random()*8)];
@@ -665,20 +790,19 @@ export default function App() {
           status: 'PACK_OPEN',
           selectionState: {
               mode: 'PACK',
-              maxSelect: 1, // 目前只支持选1张
+              maxSelect: 1,
               generatedCards: generatedCards,
               sourceItemId: pack.id
           }
       }));
   };
 
-  // 选中补充包里的卡
   const selectPackCard = (idx: number) => {
       const state = game.selectionState;
       if (!state || !state.generatedCards) return;
       const card = state.generatedCards[idx];
       
-      if ('rarity' in card) { // Joker
+      if ('rarity' in card) { 
           let maxJokers = MAX_JOKERS_DEFAULT;
           game.jokers.forEach(j => { if (j.edition === 'Negative') maxJokers++; });
 
@@ -693,7 +817,7 @@ export default function App() {
           } else {
               audio.playError();
           }
-      } else if ('suit' in card) { // Playing Card
+      } else if ('suit' in card) {
           setGame(prev => ({
               ...prev,
               deck: [...prev.deck, card as CardData],
@@ -701,7 +825,7 @@ export default function App() {
               selectionState: undefined
           }));
           audio.playScoreTotal();
-      } else { // Consumable
+      } else { 
           if (game.consumables.length < MAX_CONSUMABLES) {
               setGame(prev => ({
                   ...prev,
@@ -731,7 +855,6 @@ export default function App() {
       const item = game.consumables[index];
       if (!item) return;
 
-      // 星球牌直接使用
       if (item.type === 'Planet' && item.targetHand) {
           audio.playScoreTotal();
           setGame(prev => {
@@ -751,16 +874,14 @@ export default function App() {
              return { ...prev, handLevels: newLevels, consumables: newConsumables };
           });
       } 
-      // 塔罗牌需要选择目标
       else if (item.type === 'Tarot') {
-          // 确定目标数量
           let maxTargets = 0;
           if (['enhance_mult', 'enhance_bonus', 'enhance_lucky'].includes(item.effectId || '')) maxTargets = 2;
           else if (['enhance_wild', 'enhance_glass', 'enhance_steel', 'enhance_stone', 'enhance_gold'].includes(item.effectId || '')) maxTargets = 1;
           
           if (maxTargets > 0) {
               if (game.status !== 'PLAYING') {
-                  audio.playError(); // 只能在出牌阶段强化手牌
+                  audio.playError();
                   return;
               }
               setGame(prev => ({
@@ -771,10 +892,9 @@ export default function App() {
                       sourceItemId: item.id,
                       callbackId: item.effectId
                   },
-                  selectedCardIds: [] // 清空当前选中，准备进行目标选择
+                  selectedCardIds: [] 
               }));
           } else {
-              // 无需目标的塔罗牌 (如 Hermit)
                audio.playScoreTotal();
                if (item.effectId === 'economy_double') {
                    setGame(prev => ({ ...prev, money: Math.min(prev.money + 20, prev.money * 2) }));
@@ -801,7 +921,6 @@ export default function App() {
       setGame(prev => {
           const newHand = prev.hand.map(card => {
               if (prev.selectedCardIds.includes(card.id)) {
-                  // 应用增强效果
                   if (state.callbackId === 'enhance_mult') return { ...card, enhancement: 'Mult' as Enhancement };
                   if (state.callbackId === 'enhance_bonus') return { ...card, enhancement: 'Bonus' as Enhancement };
                   if (state.callbackId === 'enhance_wild') return { ...card, enhancement: 'Wild' as Enhancement };
@@ -855,7 +974,7 @@ export default function App() {
       {game.settings.enableCrt && ( <> <div className="crt-scanlines"></div> <div className="crt-flicker"></div> </> )}
       <div className="vignette"></div>
 
-      {/* --- 开包遮罩层 (PACK OPENING OVERLAY) --- */}
+      {/* --- 开包遮罩层 --- */}
       {game.status === 'PACK_OPEN' && game.selectionState?.generatedCards && (
           <div className="absolute inset-0 z-[100] bg-black/90 flex flex-col items-center justify-center">
               <h2 className="text-5xl font-black text-white mb-8 uppercase">{t(lang, 'choose_card')}</h2>
@@ -876,7 +995,7 @@ export default function App() {
           </div>
       )}
 
-      {/* --- 塔罗牌选择遮罩层 (SELECTION OVERLAY) --- */}
+      {/* --- 塔罗牌选择遮罩层 --- */}
       {game.selectionState?.mode === 'TAROT' && (
           <div className="absolute top-32 left-1/2 transform -translate-x-1/2 z-[90] flex flex-col items-center gap-4">
               <div className="bg-black/80 text-white px-8 py-4 rounded border-2 border-white text-2xl font-bold animate-pulse">
@@ -891,17 +1010,12 @@ export default function App() {
 
       {/* 1. 菜单 (Menu) */}
       {game.status === 'MENU' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-50">
-            <div className="z-10 text-center transform scale-110">
-                <h1 className="text-9xl mb-4 text-[#FE5F55] animate-pulse text-shadow-retro font-black tracking-tighter" style={{fontFamily: 'VT323'}}>BALATRO</h1>
-                <div className="text-4xl mb-12 text-blue-300 text-shadow-retro tracking-widest">CN WEB VERSION</div>
-                <button onClick={startGame} className="px-16 py-6 bg-orange-500 text-white text-4xl font-bold rounded shadow-[8px_8px_0_#000] hover:translate-y-1 hover:shadow-[4px_4px_0_#000] transition-all border-4 border-black">
-                    {t(lang, 'start_game')}
-                </button>
-            </div>
-             <button onClick={() => setShowRunInfo(true)} className="absolute top-4 left-4 px-4 py-2 bg-red-600 rounded border-2 border-black hover:bg-red-500 z-50 text-white font-bold shadow-md">📖 {t(lang, 'rules')}</button>
-             <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 px-4 py-2 bg-gray-700 rounded border-2 border-black hover:bg-gray-600 z-50 text-white font-bold shadow-md">⚙️ {t(lang, 'settings')}</button>
-          </div>
+          <MainMenu 
+              onStart={startGame}
+              onSettings={() => setShowSettings(true)}
+              onRules={() => setShowRunInfo(true)}
+              language={lang}
+          />
       )}
 
       {/* 2. 游戏结束 (Game Over) */}
@@ -1048,7 +1162,14 @@ export default function App() {
                         <div className="flex gap-2 p-4 bg-black/40 rounded border-2 border-black min-h-[160px] items-center justify-center">
                              {game.jokers.map((joker, idx) => (
                                 <div key={`${joker.id}-${idx}`} className="transform scale-90">
-                                    <JokerComponent joker={joker} canSell={true} onSell={() => sellJoker(idx)} language={lang}/>
+                                    <JokerComponent 
+                                        joker={joker} 
+                                        index={idx} 
+                                        canSell={true} 
+                                        onSell={() => sellJoker(idx)} 
+                                        onDrop={handleJokerDrop} 
+                                        language={lang}
+                                    />
                                 </div>
                              ))}
                         </div>
@@ -1080,12 +1201,23 @@ export default function App() {
                  <button onClick={() => setShowSettings(true)} className="p-2 bg-gray-700 text-white rounded border-2 border-black hover:bg-gray-600 font-bold shadow-md text-sm">⚙️ {t(lang, 'settings')}</button>
             </div>
 
-            {/* 小丑牌展示区 */}
+            {/* 小丑牌展示区 - 支持拖拽与触发动画 */}
             <div className="h-40 bg-black/30 flex items-center justify-between px-12 gap-4 relative z-20 backdrop-blur-sm border-b-4 border-black/50 pt-8">
                 <div className="flex gap-2 items-center flex-1">
                     {game.jokers.length === 0 && <div className="text-white/20 font-bold text-xl italic tracking-widest">{t(lang, 'no_jokers')}</div>}
                     {game.jokers.map((joker, idx) => (
-                        <div key={idx} className="transform scale-75 origin-top-left"><JokerComponent joker={joker} canSell={true} onSell={() => sellJoker(idx)} language={lang}/></div>
+                        <div key={joker.id} className="transform scale-75 origin-top-left">
+                            <JokerComponent 
+                                joker={joker} 
+                                index={idx}
+                                canSell={game.status === 'PLAYING'} 
+                                onSell={() => sellJoker(idx)} 
+                                onDrop={handleJokerDrop}
+                                triggerState={game.triggerState}
+                                isActive={game.activeCardId === joker.id}
+                                language={lang}
+                            />
+                        </div>
                     ))}
                 </div>
                 <div className="flex gap-2 items-center justify-end border-l-2 border-white/10 pl-8">
@@ -1150,20 +1282,15 @@ export default function App() {
                 </div>
 
                 <div className="flex-1 flex flex-col items-center relative">
-                    {/* 计分浮动动画 */}
-                    {scoreDetails && (
-                        <div className="absolute top-24 z-[200] flex flex-col items-center w-full pointer-events-none">
-                            <div className="animate-score-float bg-[#222] border-4 border-white p-6 rounded-xl shadow-[0_0_0_4px_rgba(0,0,0,0.5)] text-center min-w-[300px]">
-                                <div className="text-2xl text-gray-300 uppercase mb-2 font-bold tracking-widest border-b border-gray-600 pb-2">{handLabel}</div>
-                                <div className="flex items-center justify-center gap-4 text-4xl font-black mb-2">
-                                    <span className="text-[#009ddc] drop-shadow-[2px_2px_0_#000]">{scoreDetails.chips}</span>
-                                    <span className="text-white text-2xl">X</span>
-                                    <span className="text-[#FE5F55] drop-shadow-[2px_2px_0_#000]">{scoreDetails.mult}</span>
-                                </div>
-                                <div className="w-full h-1 bg-gray-600 my-2"></div>
-                                <div className="text-6xl font-black text-white drop-shadow-[4px_4px_0_#000]">{scoreDetails.total.toLocaleString()}</div>
-                            </div>
-                        </div>
+                    {/* 计分板组件 (替换了原来的直接渲染代码) */}
+                    {(game.status === 'SCORING' || game.status === 'VICTORY') && (
+                        <ScoreDisplay 
+                            label={handLabel}
+                            chips={liveScore.chips}
+                            mult={liveScore.mult}
+                            total={liveScore.total}
+                            triggerState={game.triggerState}
+                        />
                     )}
 
                     <button onClick={toggleSort} className="absolute top-4 right-8 z-30 bg-black/40 px-3 py-1 border-2 border-white/30 text-xs font-bold hover:bg-black/60 transition-colors">
@@ -1180,6 +1307,8 @@ export default function App() {
                                     index={index}
                                     selected={game.selectedCardIds.includes(card.id)}
                                     highlighted={game.selectionState?.mode === 'TAROT' && game.selectedCardIds.includes(card.id)}
+                                    isActive={game.activeCardId === card.id}
+                                    triggerState={game.triggerState}
                                     onClick={() => toggleCard(card.id)}
                                     onDrop={handleCardDrop}
                                     disabled={animating || card.animationState !== 'idle'}

@@ -21,6 +21,10 @@ export type Edition = 'Foil' | 'Holographic' | 'Polychrome' | 'Negative' | null;
 // 增强 (Enhancements) - 改变卡牌功能
 export type Enhancement = 'Bonus' | 'Mult' | 'Wild' | 'Glass' | 'Steel' | 'Stone' | 'Gold' | 'Lucky' | null;
 
+// 蜡戳 (Seals) - 额外特效
+// Red: 重新触发1次; Blue: 最后一手打出握在手中生成行星; Gold: 打出给$3; Purple: 弃掉生成塔罗
+export type Seal = 'Red' | 'Blue' | 'Gold' | 'Purple' | null;
+
 // 单张卡牌的数据结构
 export interface CardData {
   id: string;           // 唯一标识符
@@ -29,6 +33,7 @@ export interface CardData {
   
   edition: Edition;     // 版本 (Foil/Holo/Poly)
   enhancement: Enhancement; // 增强 (Bonus/Mult/Wild/Glass/Steel...)
+  seal: Seal;           // 蜡戳 (Seal)
   
   isDebuffed?: boolean; // 是否被削弱 (Boss 盲注效果)
   
@@ -52,9 +57,11 @@ export interface Joker {
   type: 'flat_mult' | 'flat_chips' | 'x_mult' | 'money_gen' | 'utility'; 
   value: number;        
   
-  trigger?: 'played' | 'held' | 'discard'; 
+  // 触发类型：是“打出每张牌时”触发，还是“整手牌”触发
+  triggerType?: 'card_played' | 'independent' | 'held' | 'discard';
   
-  condition?: (handType: HandType, playedCards: CardData[]) => boolean;
+  // 触发条件回调
+  condition?: (handType: HandType, playedCards: CardData[], scoringState?: { chips: number, mult: number }) => boolean;
   
   probability?: number; // 触发概率 (如 1/4 损坏)
 
@@ -141,12 +148,39 @@ export interface HandResult {
   level: number;        
 }
 
-// 计分结果详细报告
+// --- 计分事件系统 (Scoring Event System) ---
+// 用于前端逐步播放动画，而不是瞬间显示结果
+export type ScoringEventType = 
+    | 'hand_base'       // 基础牌型分
+    | 'card_score'      // 卡牌计分 (筹码/倍率)
+    | 'card_edition'    // 卡牌版本效果 (Holo/Poly等)
+    | 'card_retrigger'  // 蜡戳/效果导致的重触发
+    | 'held_trigger'    // 手持卡触发 (钢铁)
+    | 'joker_trigger'   // 小丑触发
+    | 'glass_break'     // 玻璃牌破碎
+    | 'multiplier_update'; // 单纯更新倍率显示
+
+export interface ScoringEvent {
+    type: ScoringEventType;
+    sourceId: string;   // 触发来源ID (Card ID 或 Joker ID)
+    sourceType: 'card' | 'joker' | 'hand';
+    
+    chipsAdded?: number; // 增加的筹码
+    multAdded?: number;  // 增加的倍率
+    x_mult?: number;     // 乘以的倍率
+    
+    message?: string;    // 浮动文字内容 (如 "+4 Mult", "X1.5 Mult")
+    isRetrigger?: boolean; 
+}
+
+// 计分报告结构体 (包含完整的时间轴)
 export interface ScoreReport {
     chips: number;
     mult: number;
     total: number;
-    destroyedCards: string[]; // ID of cards destroyed (Glass)
+    timeline: ScoringEvent[]; // 动画时间轴
+    destroyedCards: string[]; // 被摧毁的卡牌ID
+    goldGained: number;       // 获得的金钱
 }
 
 // 游戏设置
@@ -193,6 +227,13 @@ export interface SelectionState {
     callbackId?: string; // 效果ID (如 enhance_gold)
 }
 
+// 触发反馈状态 (用于 UI 显示触发动画)
+export interface TriggerState {
+    id: string;           // 触发的卡牌/Joker ID
+    text: string;         // 显示的文字 (e.g., "+10")
+    type: 'chips' | 'mult' | 'x_mult' | 'other';
+}
+
 // 全局游戏状态 (State Machine)
 export interface GameState {
   deck: CardData[];       
@@ -230,7 +271,10 @@ export interface GameState {
   status: 'MENU' | 'BLIND_SELECT' | 'PLAYING' | 'SCORING' | 'VICTORY' | 'CASHOUT' | 'SHOP' | 'GAME_OVER' | 'PACK_OPEN';
   
   cashOutReport?: CashOutReport; 
-  selectionState?: SelectionState; // 当前选择状态 (如正在使用塔罗牌或开包)
+  selectionState?: SelectionState; 
+  
+  triggerState?: TriggerState | null; // 当前正在播放的触发动画 (Popups)
+  activeCardId?: string | null;      // 当前正在计分的卡牌/Joker ID (高亮光圈)
   
   settings: GameSettings; 
 }

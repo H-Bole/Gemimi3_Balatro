@@ -1,14 +1,18 @@
 
-import React from 'react';
-import { Joker } from '../types';
+import React, { useEffect, useState } from 'react';
+import { Joker, TriggerState } from '../types';
 import { t, Language } from '../i18n';
 
 interface JokerProps {
   joker: Joker;
+  index?: number;
   canSell?: boolean;
   onSell?: () => void;
   price?: number;
   onClick?: () => void;
+  onDrop?: (dragIndex: number, dropIndex: number) => void;
+  triggerState?: TriggerState | null;
+  isActive?: boolean; // 是否正在计分
   language?: Language;
 }
 
@@ -19,31 +23,80 @@ const RARITY_STYLES = {
   'Legendary': 'bg-[#9c88ff] border-[#604cab]', // Purple
 };
 
-export const JokerComponent: React.FC<JokerProps> = ({ joker, canSell, onSell, price, onClick, language = 'ZH' }) => {
+export const JokerComponent: React.FC<JokerProps> = ({ joker, index, canSell, onSell, price, onClick, onDrop, triggerState, isActive, language = 'ZH' }) => {
   const baseStyle = RARITY_STYLES[joker.rarity];
   const name = (language === 'ZH' && joker.nameZh) ? joker.nameZh : joker.name;
   const desc = (language === 'ZH' && joker.descriptionZh) ? joker.descriptionZh : joker.description;
   const rarityLabel = t(language, `rarity_${joker.rarity}`);
 
+  const [triggerAnim, setTriggerAnim] = useState<string | null>(null);
+
+  // 触发动画监测
+  useEffect(() => {
+      if (triggerState && triggerState.id === joker.id) {
+          setTriggerAnim(triggerState.text);
+          const timer = setTimeout(() => setTriggerAnim(null), 800);
+          return () => clearTimeout(timer);
+      }
+  }, [triggerState, joker.id]);
+
   // 版本特效类
   const editionClass = joker.edition ? `edition-${joker.edition.toLowerCase()}` : '';
   const editionLabel = joker.edition ? t(language, `edition_${joker.edition}`) : '';
+  const activeClass = isActive ? 'active-glow scale-110 z-50' : '';
+
+  const handleDragStart = (e: React.DragEvent) => {
+      if (index === undefined) return;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', index.toString());
+      e.dataTransfer.setData('type', 'joker');
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+      e.preventDefault();
+      const dragType = e.dataTransfer.getData('type');
+      if (dragType !== 'joker') return;
+
+      const dragIndex = parseInt(e.dataTransfer.getData('text/plain'));
+      if (index !== undefined && !isNaN(dragIndex) && dragIndex !== index && onDrop) {
+          onDrop(dragIndex, index);
+      }
+  };
 
   return (
     <div 
       className={`
         relative w-32 h-48 flex flex-col items-center justify-between
-        transition-transform hover:scale-105 cursor-pointer
+        transition-all hover:scale-105 cursor-pointer
         ${baseStyle}
         ${editionClass}
+        ${activeClass}
       `}
       style={{
-        boxShadow: 'inset 2px 2px 0 rgba(255,255,255,0.4), inset -2px -2px 0 rgba(0,0,0,0.3), 4px 4px 0px rgba(0,0,0,0.5)',
+        boxShadow: isActive ? '0 0 20px rgba(255,255,255,0.8)' : 'inset 2px 2px 0 rgba(255,255,255,0.4), inset -2px -2px 0 rgba(0,0,0,0.3), 4px 4px 0px rgba(0,0,0,0.5)',
         borderWidth: '3px',
         borderStyle: 'solid'
       }}
       onClick={onClick}
+      draggable={index !== undefined}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
+      {/* 触发反馈 */}
+      {triggerAnim && (
+          <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 z-[200] animate-bounce whitespace-nowrap pointer-events-none">
+              <div className="bg-black/90 text-white text-xl font-black px-3 py-1 rounded-lg border-2 border-white shadow-[4px_4px_0_#000]">
+                  {triggerAnim}
+              </div>
+          </div>
+      )}
+
       {/* 名字横幅 */}
       <div className="w-full bg-black/40 text-white text-[12px] text-center py-1 font-bold uppercase tracking-wider border-b border-white/20 truncate px-2 mt-0 z-10 relative">
         {name}
